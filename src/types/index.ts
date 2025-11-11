@@ -47,9 +47,13 @@ export interface Produto {
 }
 
 export interface ItemCarrinho {
-  produto: Produto;
+  id: number;
+  nome: string;
+  preco: number;
+  unidade: string;
   quantidade: number;
-  feirante: Feirante;
+  feiranteId: number;
+  feiranteNome: string;
 }
 
 export interface Pedido {

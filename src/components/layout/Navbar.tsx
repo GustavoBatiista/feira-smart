@@ -52,13 +52,13 @@ export const Navbar = () => {
                 
                 {user.tipo === 'feirante' && (
                   <>
-                    <Link to="/dashboard">
+                    <Link to="/feirante/dashboard">
                       <Button variant="ghost">Dashboard</Button>
                     </Link>
-                    <Link to="/produtos">
+                    <Link to="/feirante/produtos">
                       <Button variant="ghost">Produtos</Button>
                     </Link>
-                    <Link to="/pedidos-recebidos">
+                    <Link to="/feirante/pedidos">
                       <Button variant="ghost">Pedidos</Button>
                     </Link>
                   </>

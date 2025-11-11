@@ -5,8 +5,8 @@ import { toast } from '@/hooks/use-toast';
 interface CartContextType {
   items: ItemCarrinho[];
   addToCart: (item: ItemCarrinho) => void;
-  removeFromCart: (produtoId: string) => void;
-  updateQuantity: (produtoId: string, quantidade: number) => void;
+  removeFromCart: (produtoId: number) => void;
+  updateQuantity: (produtoId: number, quantidade: number) => void;
   clearCart: () => void;
   total: number;
 }
@@ -18,44 +18,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = (item: ItemCarrinho) => {
     setItems(prev => {
-      const existingItem = prev.find(i => i.produto.id === item.produto.id);
+      const existingItem = prev.find(i => i.id === item.id);
       
       if (existingItem) {
-        toast({
-          title: "Quantidade atualizada",
-          description: `${item.produto.nome} atualizado no carrinho`,
-        });
         return prev.map(i =>
-          i.produto.id === item.produto.id
+          i.id === item.id
             ? { ...i, quantidade: i.quantidade + item.quantidade }
             : i
         );
       }
       
-      toast({
-        title: "Adicionado ao carrinho",
-        description: `${item.produto.nome} foi adicionado ao carrinho`,
-      });
       return [...prev, item];
     });
   };
 
-  const removeFromCart = (produtoId: string) => {
-    setItems(prev => prev.filter(item => item.produto.id !== produtoId));
-    toast({
-      title: "Removido do carrinho",
-      description: "Produto removido com sucesso",
-    });
+  const removeFromCart = (produtoId: number) => {
+    setItems(prev => prev.filter(item => item.id !== produtoId));
   };
 
-  const updateQuantity = (produtoId: string, quantidade: number) => {
+  const updateQuantity = (produtoId: number, quantidade: number) => {
     if (quantidade <= 0) {
       removeFromCart(produtoId);
       return;
     }
     setItems(prev =>
       prev.map(item =>
-        item.produto.id === produtoId ? { ...item, quantidade } : item
+        item.id === produtoId ? { ...item, quantidade } : item
       )
     );
   };
@@ -65,7 +53,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const total = items.reduce(
-    (sum, item) => sum + item.produto.preco * item.quantidade,
+    (sum, item) => sum + item.preco * item.quantidade,
     0
   );
 
