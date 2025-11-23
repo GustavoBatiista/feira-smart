@@ -14,7 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      feirantes: {
+        Row: {
+          avaliacao: number | null
+          avatar: string | null
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          feira_id: string
+          id: string
+          nome_estande: string
+          num_avaliacoes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avaliacao?: number | null
+          avatar?: string | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          feira_id: string
+          id?: string
+          nome_estande: string
+          num_avaliacoes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avaliacao?: number | null
+          avatar?: string | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          feira_id?: string
+          id?: string
+          nome_estande?: string
+          num_avaliacoes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feirantes_feira_id_fkey"
+            columns: ["feira_id"]
+            isOneToOne: false
+            referencedRelation: "feiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feirantes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feiras: {
+        Row: {
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          imagem: string | null
+          localizacao: string
+          nome: string
+          status: Database["public"]["Enums"]["feira_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          imagem?: string | null
+          localizacao: string
+          nome: string
+          status?: Database["public"]["Enums"]["feira_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          imagem?: string | null
+          localizacao?: string
+          nome?: string
+          status?: Database["public"]["Enums"]["feira_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["user_type"]
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["user_type"]
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["user_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +157,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      feira_status: "ativa" | "encerrada" | "agendada"
+      user_type: "cliente" | "feirante"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +285,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      feira_status: ["ativa", "encerrada", "agendada"],
+      user_type: ["cliente", "feirante"],
+    },
   },
 } as const
