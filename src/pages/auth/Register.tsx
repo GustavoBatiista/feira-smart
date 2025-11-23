@@ -52,22 +52,34 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register(email, password, nome, tipo);
+      const { error } = await register(email, password, nome, tipo);
+      
+      if (error) {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message || "Não foi possível criar sua conta. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo ao FeiraSmart",
       });
       
-      // Redirecionar baseado no tipo de usuário
-      if (tipo === 'feirante') {
-        navigate('/dashboard');
-      } else {
-        navigate('/feiras');
-      }
+      // Aguardar perfil carregar
+      setTimeout(() => {
+        if (tipo === 'feirante') {
+          navigate('/dashboard');
+        } else {
+          navigate('/feiras');
+        }
+      }, 500);
     } catch (error) {
       toast({
         title: "Erro no cadastro",
-        description: "Não foi possível criar sua conta. Tente novamente.",
+        description: "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     } finally {
