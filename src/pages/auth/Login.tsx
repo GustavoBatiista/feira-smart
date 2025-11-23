@@ -30,22 +30,30 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await login(email, password);
+      const { error } = await login(email, password);
+      
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: error.message || "Verifique suas credenciais e tente novamente",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Login realizado!",
         description: "Bem-vindo ao FeiraSmart",
       });
       
-      // Redirecionar baseado no tipo de usuário
-      if (email.includes('feirante')) {
+      // Aguardar perfil carregar
+      setTimeout(() => {
         navigate('/dashboard');
-      } else {
-        navigate('/feiras');
-      }
+      }, 500);
     } catch (error) {
       toast({
         title: "Erro no login",
-        description: "Verifique suas credenciais e tente novamente",
+        description: "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     } finally {
