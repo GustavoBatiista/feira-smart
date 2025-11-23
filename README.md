@@ -1,73 +1,185 @@
-# Welcome to your Lovable project
+# 🍎 FeiraSmart
 
-## Project info
+Uma plataforma moderna e inteligente para conectar consumidores e produtores em feiras livres. Reserve produtos, organize suas compras e gerencie suas vendas com facilidade.
 
-**URL**: https://lovable.dev/projects/2415132a-64cf-461a-9d27-0b1cb6470793
+## 📋 Sobre o Projeto
 
-## How can I edit this code?
+O FeiraSmart é uma aplicação web que revoluciona a experiência das feiras livres, permitindo que consumidores encontrem e reservem produtos diretamente com os feirantes antes mesmo de chegarem à feira. Para os feirantes, oferece uma solução completa de gestão de produtos e pedidos.
 
-There are several ways of editing your application.
+## ✨ Funcionalidades
 
-**Use Lovable**
+### Para Consumidores 👥
+- **Busca de Feiras**: Descubra feiras próximas com produtos frescos e de qualidade
+- **Catálogo de Produtos**: Navegue pelos produtos disponíveis de cada feirante
+- **Carrinho de Compras**: Adicione produtos ao carrinho e faça suas reservas
+- **Gestão de Pedidos**: Acompanhe o status dos seus pedidos em tempo real
+- **Perfis de Feirantes**: Conheça os produtores locais e suas avaliações
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2415132a-64cf-461a-9d27-0b1cb6470793) and start prompting.
+### Para Feirantes 🏪
+- **Dashboard**: Visão geral do seu negócio e estatísticas
+- **Gestão de Produtos**: Cadastre, edite e gerencie seu catálogo de produtos
+- **Gestão de Pedidos**: Receba, confirme e acompanhe os pedidos dos clientes
+- **Controle de Estoque**: Monitore a disponibilidade dos seus produtos
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tecnologias Utilizadas
 
-**Use your preferred IDE**
+### Frontend
+- **React 18** - Biblioteca JavaScript para construção de interfaces
+- **TypeScript** - Tipagem estática para JavaScript
+- **Vite** - Build tool e dev server rápido
+- **React Router** - Roteamento de páginas
+- **Tailwind CSS** - Framework CSS utilitário
+- **Shadcn/ui** - Componentes UI modernos e acessíveis
+- **React Query** - Gerenciamento de estado servidor e cache
+- **React Hook Form** - Formulários performáticos
+- **Zod** - Validação de schemas
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Backend & Database
+- **Supabase** - Backend como serviço (BaaS)
+  - Autenticação de usuários
+  - Banco de dados PostgreSQL
+  - Storage para imagens
+- **PostgreSQL** - Banco de dados relacional (também suportado via scripts na pasta `database/`)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Ferramentas de Desenvolvimento
+- **ESLint** - Linter para JavaScript/TypeScript
+- **PostCSS** - Processamento de CSS
+- **Lucide React** - Ícones modernos
 
-Follow these steps:
+## 📦 Instalação
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Pré-requisitos
+- Node.js (versão 18 ou superior)
+- npm ou bun
+- Conta no Supabase (para configuração do backend)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Passos para Instalação
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. **Clone o repositório**
+```bash
+git clone <url-do-repositorio>
+cd feira-smart
 ```
 
-**Edit a file directly in GitHub**
+2. **Instale as dependências**
+```bash
+npm install
+# ou
+bun install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. **Configure as variáveis de ambiente**
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+```env
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+```
 
-**Use GitHub Codespaces**
+4. **Configure o banco de dados**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   **Opção A: Usando Supabase (padrão)**
+   
+   Certifique-se de que as migrações do Supabase foram executadas. Os arquivos de migração estão em `supabase/migrations/`.
 
-## What technologies are used for this project?
+   **Opção B: Usando PostgreSQL standalone**
+   
+   Se preferir usar um banco PostgreSQL próprio, consulte a pasta `database/` para scripts SQL completos:
+   ```bash
+   # Usando Docker (recomendado)
+   cd database
+   docker-compose up -d
+   
+   # Ou execute o script SQL manualmente
+   psql -U postgres -d feira_smart -f schema.sql
+   ```
 
-This project is built with:
+5. **Inicie o servidor de desenvolvimento**
+```bash
+npm run dev
+# ou
+bun dev
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+A aplicação estará disponível em `http://localhost:5173`
 
-## How can I deploy this project?
+## 🏗️ Estrutura do Projeto
 
-Simply open [Lovable](https://lovable.dev/projects/2415132a-64cf-461a-9d27-0b1cb6470793) and click on Share -> Publish.
+```
+feira-smart/
+├── public/                 # Arquivos estáticos
+├── src/
+│   ├── assets/            # Imagens e recursos
+│   ├── components/        # Componentes React
+│   │   ├── layout/       # Componentes de layout (Navbar, etc)
+│   │   └── ui/           # Componentes UI do Shadcn
+│   ├── hooks/            # Custom hooks (useAuth, useCart)
+│   ├── integrations/     # Integrações externas
+│   │   └── supabase/     # Cliente e tipos do Supabase
+│   ├── lib/              # Utilitários e helpers
+│   ├── pages/            # Páginas da aplicação
+│   │   ├── auth/        # Login e Registro
+│   │   ├── consumer/    # Páginas do consumidor
+│   │   └── feirante/    # Páginas do feirante
+│   ├── types/            # Definições de tipos TypeScript
+│   ├── App.tsx           # Componente principal
+│   └── main.tsx          # Entry point
+├── database/             # Scripts SQL para PostgreSQL standalone
+│   ├── schema.sql        # Schema completo do banco de dados
+│   ├── seed.sql          # Dados de exemplo (opcional)
+│   ├── connection.example.js  # Exemplo de conexão
+│   ├── docker-compose.yml     # Docker para PostgreSQL
+│   └── README.md         # Documentação do banco
+├── supabase/             # Configuração e migrações do Supabase
+│   ├── migrations/       # Migrações do banco de dados
+│   └── config.toml       # Configuração do Supabase
+└── package.json          # Dependências e scripts
+```
 
-## Can I connect a custom domain to my Lovable project?
+## 🚀 Scripts Disponíveis
 
-Yes, you can!
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Cria o build de produção
+- `npm run build:dev` - Cria o build em modo desenvolvimento
+- `npm run preview` - Preview do build de produção
+- `npm run lint` - Executa o linter
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📱 Rotas da Aplicação
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Públicas
+- `/` - Página inicial
+- `/login` - Página de login
+- `/register` - Página de registro
+
+### Consumidor
+- `/feiras` - Lista de feiras disponíveis
+- `/feira/:id/detalhes` - Detalhes de uma feira
+- `/feirante/:id/produtos` - Produtos de um feirante
+- `/carrinho` - Carrinho de compras
+- `/pedidos` - Histórico de pedidos
+
+### Feirante
+- `/feirante/dashboard` - Dashboard do feirante
+- `/feirante/produtos` - Lista de produtos
+- `/feirante/produtos/novo` - Cadastrar novo produto
+- `/feirante/produtos/:id/editar` - Editar produto
+- `/feirante/pedidos` - Pedidos recebidos
+
+## 🗄️ Estrutura do Banco de Dados
+
+### Tabelas Principais
+- **profiles** - Perfis de usuários (clientes e feirantes)
+- **feiras** - Informações das feiras
+- **feirantes** - Informações dos estandes/feirantes
+- **produtos** - Catálogo de produtos
+- **pedidos** - Pedidos realizados pelos clientes
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT.
+
+
+FeiraSmart - Conectando consumidores e produtores de forma inteligente.
