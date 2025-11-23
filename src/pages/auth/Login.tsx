@@ -46,9 +46,9 @@ const Login = () => {
         description: "Bem-vindo ao FeiraSmart",
       });
       
-      // Aguardar perfil carregar
+      // Aguardar perfil carregar e redirecionar
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/');
       }, 500);
     } catch (error) {
       toast({
