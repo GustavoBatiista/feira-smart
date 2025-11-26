@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,21 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirecionar quando o usuário for carregado após login
+  useEffect(() => {
+    if (shouldRedirect && user) {
+      if (user.tipo === 'feirante') {
+        navigate('/feirante/dashboard');
+      } else {
+        navigate('/feiras');
+      }
+      setShouldRedirect(false);
+    }
+  }, [user, shouldRedirect, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +59,10 @@ const Login = () => {
         description: "Bem-vindo ao FeiraSmart",
       });
       
-      // Aguardar perfil carregar e redirecionar
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
+      // Marcar que devemos redirecionar quando o user carregar
+      setShouldRedirect(true);
+      
+      // O redirecionamento será feito pelo useEffect quando o user estiver disponível
     } catch (error) {
       toast({
         title: "Erro no login",

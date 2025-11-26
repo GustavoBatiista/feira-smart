@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,7 +13,8 @@ import { toast } from "@/hooks/use-toast";
 import { Feira } from "@/types";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [feiras, setFeiras] = useState<Feira[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFeira, setSelectedFeira] = useState<Feira | null>(null);
@@ -23,19 +25,26 @@ export default function Dashboard() {
     categoria: '',
   });
 
+  // Proteção de rota: redirecionar se não for feirante
   useEffect(() => {
-    fetchFeiras();
-  }, []);
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else if (user.tipo !== 'feirante') {
+        navigate('/feiras');
+      }
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user && user.tipo === 'feirante') {
+      fetchFeiras();
+    }
+  }, [user]);
 
   const fetchFeiras = async () => {
     try {
-      const { data, error } = await supabase
-        .from('feiras')
-        .select('*')
-        .eq('status', 'ativa')
-        .order('data_inicio', { ascending: true });
-
-      if (error) throw error;
+      const data = await api.feiras.list('ativa');
 
       if (data) {
         setFeiras(data.map(f => ({
@@ -51,11 +60,11 @@ export default function Dashboard() {
           status: f.status as 'ativa' | 'encerrada' | 'agendada',
         })));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching feiras:', error);
       toast({
         title: "Erro ao carregar feiras",
-        description: "Não foi possível carregar as feiras disponíveis",
+        description: error.message || "Não foi possível carregar as feiras disponíveis",
         variant: "destructive",
       });
     } finally {
@@ -76,17 +85,12 @@ export default function Dashboard() {
     }
 
     try {
-      const { error } = await supabase
-        .from('feirantes')
-        .insert({
-          user_id: user.id,
-          feira_id: selectedFeira.id,
-          nome_estande: formData.nomeEstande,
-          descricao: formData.descricao,
-          categoria: formData.categoria,
-        });
-
-      if (error) throw error;
+      await api.feirantes.create({
+        feira_id: selectedFeira.id,
+        nome_estande: formData.nomeEstande,
+        descricao: formData.descricao,
+        categoria: formData.categoria,
+      });
 
       toast({
         title: "Cadastro realizado!",
@@ -136,6 +140,22 @@ export default function Dashboard() {
       color: "text-green-600"
     }
   ];
+
+  // Mostrar loading enquanto autenticação está carregando ou se não for feirante
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.tipo !== 'feirante') {
+    return null; // O useEffect vai redirecionar
+  }
 
   return (
     <div className="min-h-screen bg-background">

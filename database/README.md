@@ -144,3 +144,6 @@ O script `schema.sql` inclui alguns dados de exemplo. Para desenvolvimento, voc√
 - [PostgreSQL UUID Extension](https://www.postgresql.org/docs/current/uuid-ossp.html)
 - [PostgreSQL Data Types](https://www.postgresql.org/docs/current/datatype.html)
 
+
+
+

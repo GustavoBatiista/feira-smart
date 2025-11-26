@@ -255,3 +255,6 @@ ON CONFLICT (id) DO NOTHING;
 -- JOIN pedido_itens pi ON ped.id = pi.pedido_id
 -- WHERE ped.id = 'a50e8400-e29b-41d4-a716-446655440001';
 
+
+
+

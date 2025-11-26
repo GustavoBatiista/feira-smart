@@ -233,3 +233,6 @@ COMMENT ON TABLE public.pedido_itens IS 'Itens de cada pedido';
 -- END OF SCRIPT
 -- ============================================
 
+
+
+

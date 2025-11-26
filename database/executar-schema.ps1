@@ -1,22 +1,8 @@
-# Script para executar o schema.sql no banco feira_smart
-# Você pode executar este script ou copiar o conteúdo do schema.sql no pgAdmin
-
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " Executando Schema no Banco de Dados" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-
 # Adicionar PostgreSQL ao PATH
 $env:Path += ";C:\Program Files\PostgreSQL\16\bin"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $schemaPath = Join-Path $scriptDir "schema.sql"
-
-Write-Host "Opção 1: Executar via PowerShell (vai pedir senha)" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Comando:" -ForegroundColor Cyan
-Write-Host "  psql -U postgres -d feira_smart -f schema.sql" -ForegroundColor White
-Write-Host ""
 
 $executar = Read-Host "Deseja executar agora? (S/N)"
 

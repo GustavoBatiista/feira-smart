@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
+import { api } from '@/lib/api-client';
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
+  session: any;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: any }>;
   register: (email: string, password: string, nome: string, tipo: 'cliente' | 'feirante') => Promise<{ error: any }>;
@@ -16,93 +15,101 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        if (session?.user) {
-          // Fetch user profile
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          setUser(null);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Verificar se há token salvo
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchUserProfile();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setUser({
-          id: data.id,
-          email: data.email,
-          nome: data.nome,
-          tipo: data.tipo,
-          telefone: data.telefone,
-          avatar: data.avatar,
-          createdAt: data.created_at,
-        });
-      }
-    } catch (error) {
+      const userData = await api.auth.me();
+      
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        nome: userData.nome,
+        tipo: userData.tipo,
+        telefone: userData.telefone,
+        avatar: userData.avatar,
+        createdAt: userData.createdAt || userData.created_at,
+      });
+      
+      setSession({ token: localStorage.getItem('token') });
+    } catch (error: any) {
       console.error('Error fetching profile:', error);
+      // Token inválido, limpar
+      localStorage.removeItem('token');
+      setUser(null);
+      setSession(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const response = await api.auth.login({ email, password });
+      
+      // Salvar token
+      localStorage.setItem('token', response.token);
+      
+      // Atualizar usuário
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        nome: response.user.nome,
+        tipo: response.user.tipo,
+        telefone: response.user.telefone,
+        avatar: response.user.avatar,
+        createdAt: response.user.createdAt || response.user.created_at,
+      });
+      
+      setSession({ token: response.token });
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return { error: { message: error.message || 'Erro ao fazer login' } };
+    }
   };
 
   const register = async (email: string, password: string, nome: string, tipo: 'cliente' | 'feirante') => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          nome,
-          tipo,
-        },
-      },
-    });
-    return { error };
+    try {
+      const response = await api.auth.register({ email, password, nome, tipo });
+      
+      // Salvar token
+      localStorage.setItem('token', response.token);
+      
+      // Atualizar usuário
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        nome: response.user.nome,
+        tipo: response.user.tipo,
+        telefone: response.user.telefone,
+        avatar: response.user.avatar,
+        createdAt: response.user.createdAt || response.user.created_at,
+      });
+      
+      setSession({ token: response.token });
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Register error:', error);
+      return { error: { message: error.message || 'Erro ao criar conta' } };
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('token');
     setUser(null);
     setSession(null);
   };

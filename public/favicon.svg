@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <style>
+      .bg {
+        fill: #22C55E;
+      }
+      .letter {
+        fill: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 700;
+        font-size: 64px;
+      }
+    </style>
+  </defs>
+  <!-- Fundo verde arredondado -->
+  <rect width="100" height="100" rx="22" class="bg"/>
+  <!-- Letra F centralizada -->
+  <text x="50" y="72" text-anchor="middle" class="letter">F</text>
+</svg>

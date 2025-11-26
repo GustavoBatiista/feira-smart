@@ -106,3 +106,6 @@ echo DB_PASSWORD=%DB_PASSWORD%
 echo.
 pause
 
+
+
+

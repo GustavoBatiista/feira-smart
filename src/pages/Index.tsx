@@ -7,19 +7,31 @@ import { useAuth } from '@/hooks/useAuth';
 import heroImage from '@/assets/hero-feira.jpg';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirecionar usuários autenticados
-    if (user) {
+    // Redirecionar usuários autenticados assim que o user for carregado
+    if (!isLoading && user) {
       if (user.tipo === 'feirante') {
-        navigate('/dashboard');
+        navigate('/feirante/dashboard');
       } else {
         navigate('/feiras');
       }
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
+
+  // Não renderizar conteúdo se estiver carregando ou se o usuário estiver autenticado
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const features = [
     {

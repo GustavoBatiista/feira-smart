@@ -136,3 +136,6 @@ $env:PGPASSWORD = ""
 
 Read-Host "Pressione Enter para sair"
 
+
+
+
