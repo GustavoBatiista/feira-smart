@@ -44,12 +44,42 @@ public class PedidoService {
     }
 
     public List<Pedido> findByFeiranteUserId(UUID userId) {
+        System.out.println("🔍 Buscando pedidos para feirante com userId: " + userId);
+        
+        // Primeiro, buscar o feirante pelo userId para verificar se existe
+        List<com.feirasmart.model.Feirante> feirantes = feiranteRepository.findByUserId(userId);
+        System.out.println("📦 Feirantes encontrados para userId " + userId + ": " + feirantes.size());
+        
+        if (feirantes.isEmpty()) {
+            System.out.println("⚠️ Nenhum feirante encontrado para userId: " + userId);
+            return List.of();
+        }
+        
+        // Buscar pedidos usando a query principal
         List<Pedido> pedidos = pedidoRepository.findByFeiranteUserId(userId);
-        for (Pedido pedido : pedidos) {
-            if (pedido.getItens() == null) {
-                pedido.setItens(pedidoItemRepository.findByPedidoId(pedido.getId()));
+        System.out.println("✅ Pedidos encontrados pela query principal: " + pedidos.size());
+        
+        // Se não encontrou pela query principal, tentar buscar diretamente pelos feirantes
+        if (pedidos.isEmpty()) {
+            System.out.println("🔄 Tentando buscar pedidos diretamente pelos feirantes...");
+            for (com.feirasmart.model.Feirante feirante : feirantes) {
+                System.out.println("  - Buscando pedidos para feirante ID: " + feirante.getId());
+                List<Pedido> pedidosDoFeirante = pedidoRepository.findByFeiranteId(feirante.getId());
+                System.out.println("  - Pedidos encontrados: " + pedidosDoFeirante.size());
+                pedidos.addAll(pedidosDoFeirante);
             }
         }
+        
+        // Carregar itens dos pedidos
+        for (Pedido pedido : pedidos) {
+            if (pedido.getItens() == null || pedido.getItens().isEmpty()) {
+                List<PedidoItem> itens = pedidoItemRepository.findByPedidoId(pedido.getId());
+                pedido.setItens(itens);
+                System.out.println("  - Pedido " + pedido.getId() + " tem " + itens.size() + " itens");
+            }
+        }
+        
+        System.out.println("📊 Total de pedidos retornados: " + pedidos.size());
         return pedidos;
     }
 
@@ -60,14 +90,35 @@ public class PedidoService {
 
     @Transactional
     public Pedido create(UUID clienteId, UUID feiranteId, UUID feiraId, List<PedidoItemDTO> itensDTO, String observacoes) {
+        System.out.println("🛒 Criando pedido:");
+        System.out.println("  - Cliente ID: " + clienteId);
+        System.out.println("  - Feirante ID: " + feiranteId);
+        System.out.println("  - Feira ID: " + feiraId);
+        System.out.println("  - Itens: " + itensDTO.size());
+        
         User cliente = userRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+                .orElseThrow(() -> {
+                    System.err.println("❌ Cliente não encontrado: " + clienteId);
+                    return new RuntimeException("Cliente não encontrado");
+                });
+        System.out.println("✅ Cliente encontrado: " + cliente.getNome());
         
         Feirante feirante = feiranteRepository.findById(feiranteId)
-                .orElseThrow(() -> new RuntimeException("Feirante não encontrado"));
+                .orElseThrow(() -> {
+                    System.err.println("❌ Feirante não encontrado: " + feiranteId);
+                    // Verificar se existe algum feirante no banco
+                    long totalFeirantes = feiranteRepository.count();
+                    System.err.println("  - Total de feirantes no banco: " + totalFeirantes);
+                    return new RuntimeException("Feirante não encontrado com ID: " + feiranteId);
+                });
+        System.out.println("✅ Feirante encontrado: " + feirante.getNomeEstande() + " (ID: " + feirante.getId() + ")");
         
         Feira feira = feiraRepository.findById(feiraId)
-                .orElseThrow(() -> new RuntimeException("Feira não encontrada"));
+                .orElseThrow(() -> {
+                    System.err.println("❌ Feira não encontrada: " + feiraId);
+                    return new RuntimeException("Feira não encontrada com ID: " + feiraId);
+                });
+        System.out.println("✅ Feira encontrada: " + feira.getNome() + " (ID: " + feira.getId() + ")");
 
         BigDecimal total = BigDecimal.ZERO;
         for (PedidoItemDTO itemDTO : itensDTO) {

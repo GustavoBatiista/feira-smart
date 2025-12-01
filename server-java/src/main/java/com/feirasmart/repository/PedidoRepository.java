@@ -22,14 +22,23 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
            "ORDER BY p.createdAt DESC")
     List<Pedido> findByClienteIdOrderByCreatedAtDesc(@Param("clienteId") UUID clienteId);
     
+    @Query("SELECT DISTINCT p FROM Pedido p " +
+           "JOIN FETCH p.cliente " +
+           "JOIN FETCH p.feirante f " +
+           "JOIN FETCH f.user " +
+           "LEFT JOIN FETCH p.feira " +
+           "WHERE f.user.id = :userId " +
+           "ORDER BY p.createdAt DESC")
+    List<Pedido> findByFeiranteUserId(@Param("userId") UUID userId);
+    
     @Query("SELECT p FROM Pedido p " +
            "JOIN FETCH p.cliente " +
            "JOIN FETCH p.feirante f " +
            "JOIN FETCH f.user " +
-           "JOIN FETCH p.feira " +
-           "WHERE f.user.id = :userId " +
+           "LEFT JOIN FETCH p.feira " +
+           "WHERE p.feirante.id = :feiranteId " +
            "ORDER BY p.createdAt DESC")
-    List<Pedido> findByFeiranteUserId(@Param("userId") UUID userId);
+    List<Pedido> findByFeiranteId(@Param("feiranteId") UUID feiranteId);
     
     @Query("SELECT COUNT(p) FROM Pedido p JOIN p.feirante f WHERE f.user.id = :userId AND p.createdAt >= :inicioHoje AND p.createdAt < :fimHoje")
     Long countPedidosHojeByUserId(@Param("userId") UUID userId, @Param("inicioHoje") LocalDateTime inicioHoje, @Param("fimHoje") LocalDateTime fimHoje);

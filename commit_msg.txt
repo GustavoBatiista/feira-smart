@@ -1,0 +1,25 @@
+fix: correções no carrinho e finalização de pedidos
+
+### Frontend
+
+- Corrigido problema de adicionar produto ao carrinho com quantidade 0
+- Botão "Adicionar" agora desabilita quando quantidade é 0
+- Melhorado tratamento de erros na finalização de pedidos
+- Mensagens de erro mais informativas para o usuário
+- Ajustado tipo ItemCarrinho para permitir feiraId null
+
+### Backend
+
+- Adicionado mapeamento JSON para aceitar snake_case (feirante_id, feira_id)
+- Adicionados logs detalhados para debug na criação de pedidos
+- Melhorado tratamento de erros com mensagens específicas
+- Adicionado método findByFeiranteId no PedidoRepository
+- Melhorada query findByFeiranteUserId com DISTINCT e LEFT JOIN
+- Adicionada lógica de fallback para buscar pedidos do feirante
+
+### Correções
+
+- Cliente pode adicionar produtos mesmo quando feirante não está vinculado a feira
+- Validação de quantidade no botão de adicionar ao carrinho
+- Mensagens de erro mais claras quando pedido não pode ser finalizado
+

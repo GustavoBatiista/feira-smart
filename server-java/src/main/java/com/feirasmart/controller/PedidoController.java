@@ -65,12 +65,18 @@ public class PedidoController {
     }
 
     @PostMapping
-    public ResponseEntity<Pedido> create(
+    public ResponseEntity<?> create(
             HttpServletRequest request,
             @RequestBody CreatePedidoRequest createRequest) {
         try {
+            System.out.println("📦 Recebendo requisição de criação de pedido:");
+            System.out.println("  - Feirante ID: " + createRequest.getFeiranteId());
+            System.out.println("  - Feira ID: " + createRequest.getFeiraId());
+            System.out.println("  - Itens: " + (createRequest.getItens() != null ? createRequest.getItens().size() : 0));
+            
             User user = jwtUserExtractor.extractUser(request);
             if (!user.getTipo().name().equals("CLIENTE")) {
+                System.err.println("❌ Usuário não é cliente: " + user.getTipo());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
@@ -93,11 +99,34 @@ public class PedidoController {
                     createRequest.getObservacoes()
             );
 
+            System.out.println("✅ Pedido criado com sucesso: " + pedido.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(pedido);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            System.err.println("❌ Erro ao criar pedido: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            System.err.println("❌ Erro inesperado ao criar pedido: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Erro interno ao processar pedido: " + e.getMessage()));
+        }
+    }
+    
+    private static class ErrorResponse {
+        private String error;
+        
+        public ErrorResponse(String error) {
+            this.error = error;
+        }
+        
+        public String getError() {
+            return error;
+        }
+        
+        public void setError(String error) {
+            this.error = error;
         }
     }
 
@@ -124,23 +153,31 @@ public class PedidoController {
     }
 
     private static class CreatePedidoRequest {
+        @com.fasterxml.jackson.annotation.JsonProperty("feirante_id")
         private UUID feiranteId;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("feira_id")
         private UUID feiraId;
+        
         private List<PedidoItemRequest> itens;
         private String observacoes;
 
+        @com.fasterxml.jackson.annotation.JsonProperty("feirante_id")
         public UUID getFeiranteId() {
             return feiranteId;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("feirante_id")
         public void setFeiranteId(UUID feiranteId) {
             this.feiranteId = feiranteId;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("feira_id")
         public UUID getFeiraId() {
             return feiraId;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("feira_id")
         public void setFeiraId(UUID feiraId) {
             this.feiraId = feiraId;
         }
@@ -163,23 +200,31 @@ public class PedidoController {
     }
 
     private static class PedidoItemRequest {
+        @com.fasterxml.jackson.annotation.JsonProperty("produto_id")
         private UUID produtoId;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("nome_produto")
         private String nomeProduto;
+        
         private Integer quantidade;
         private java.math.BigDecimal preco;
 
+        @com.fasterxml.jackson.annotation.JsonProperty("produto_id")
         public UUID getProdutoId() {
             return produtoId;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("produto_id")
         public void setProdutoId(UUID produtoId) {
             this.produtoId = produtoId;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("nome_produto")
         public String getNomeProduto() {
             return nomeProduto;
         }
 
+        @com.fasterxml.jackson.annotation.JsonProperty("nome_produto")
         public void setNomeProduto(String nomeProduto) {
             this.nomeProduto = nomeProduto;
         }

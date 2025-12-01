@@ -51,7 +51,7 @@ export interface ItemCarrinho {
   unidade: string;
   quantidade: number;
   feiranteId: string; // UUID do feirante
-  feiraId: string; // UUID da feira
+  feiraId: string | null; // UUID da feira (pode ser null se feirante não está vinculado a feira)
   feiranteNome: string;
 }
 

@@ -101,20 +101,15 @@ export default function FeiranteProdutos() {
   const handleAddToCart = (produto: Produto) => {
     if (!feirante) return;
     
-    const quantity = quantities[produto.id] || 1;
+    const quantity = quantities[produto.id] || 0;
     
     if (quantity <= 0) {
-      toast.error('Selecione uma quantidade válida');
+      toast.error('Selecione uma quantidade maior que zero');
       return;
     }
     
     if (quantity > produto.estoque) {
       toast.error(`Quantidade indisponível. Estoque: ${produto.estoque}`);
-      return;
-    }
-    
-    if (!feiraId) {
-      toast.error("Erro: Feira não identificada");
       return;
     }
 
@@ -125,7 +120,7 @@ export default function FeiranteProdutos() {
       unidade: produto.unidade,
       quantidade: quantity,
       feiranteId: feirante.id,
-      feiraId: feiraId,
+      feiraId: feiraId || null, // Permite null se feirante não está vinculado a feira
       feiranteNome: feirante.nome_estande || feirante.nomeEstande || 'Feirante'
     });
     
@@ -326,7 +321,11 @@ export default function FeiranteProdutos() {
                     <Button
                       className="flex-1 gap-2"
                       onClick={() => handleAddToCart(produto)}
-                      disabled={produto.estoque <= 0 || !produto.disponivel}
+                      disabled={
+                        produto.estoque <= 0 || 
+                        !produto.disponivel || 
+                        (quantities[produto.id] || 0) <= 0
+                      }
                     >
                       <ShoppingCart className="h-4 w-4" />
                       Adicionar
