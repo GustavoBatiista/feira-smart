@@ -112,6 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('token');
     setUser(null);
     setSession(null);
+    // Redirecionar para login após logout, independente da página atual
+    window.location.href = '/login';
   };
 
   return (

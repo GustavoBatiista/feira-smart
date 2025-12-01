@@ -1,12 +1,95 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag, Loader2 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api-client";
+import { toast } from "@/hooks/use-toast";
 
 export default function Carrinho() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { items, total, removeFromCart, updateQuantity, clearCart } = useCart();
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  const finalizarReserva = async () => {
+    if (!user) {
+      toast({
+        title: "Acesso negado",
+        description: "Você precisa estar logado para finalizar a reserva",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (items.length === 0) {
+      toast({
+        title: "Carrinho vazio",
+        description: "Adicione produtos ao carrinho antes de finalizar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Agrupar itens por feirante (assumindo que todos os itens são do mesmo feirante)
+    // Se houver itens de feirantes diferentes, criamos um pedido para cada
+    const itemsPorFeirante = items.reduce((acc, item) => {
+      const key = `${item.feiranteId}-${item.feiraId}`;
+      if (!acc[key]) {
+        acc[key] = {
+          feiranteId: item.feiranteId,
+          feiraId: item.feiraId,
+          items: []
+        };
+      }
+      acc[key].items.push(item);
+      return acc;
+    }, {} as Record<string, { feiranteId: string; feiraId: string; items: typeof items }>);
+
+    setIsFinalizing(true);
+
+    try {
+      // Criar um pedido para cada feirante
+      const promises = Object.values(itemsPorFeirante).map(async (grupo) => {
+        const itensFormatados = grupo.items.map(item => ({
+          produto_id: item.id,
+          nome_produto: item.nome,
+          quantidade: item.quantidade,
+          preco: item.preco
+        }));
+
+        return api.pedidos.create({
+          feirante_id: grupo.feiranteId,
+          feira_id: grupo.feiraId,
+          itens: itensFormatados,
+          observacoes: null
+        });
+      });
+
+      await Promise.all(promises);
+
+      toast({
+        title: "Reserva finalizada!",
+        description: "Seu pedido foi enviado e estará em reserva. Você receberá atualizações em breve.",
+      });
+
+      clearCart();
+      navigate('/pedidos');
+    } catch (error: any) {
+      console.error('Erro ao finalizar reserva:', error);
+      toast({
+        title: "Erro ao finalizar reserva",
+        description: error.message || "Não foi possível finalizar a reserva. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -140,8 +223,20 @@ export default function Carrinho() {
                   </span>
                 </div>
 
-                <Button className="w-full" size="lg">
-                  Finalizar Reserva
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={finalizarReserva}
+                  disabled={isFinalizing || items.length === 0}
+                >
+                  {isFinalizing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Finalizando...
+                    </>
+                  ) : (
+                    "Finalizar Reserva"
+                  )}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center mt-4">

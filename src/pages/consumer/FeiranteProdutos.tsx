@@ -8,7 +8,6 @@ import { ArrowLeft, Search, ShoppingCart, Plus, Minus, Loader2 } from "lucide-re
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
-import { Navbar } from "@/components/layout/Navbar";
 import { Produto } from "@/types";
 
 export default function FeiranteProdutos() {
@@ -114,6 +113,11 @@ export default function FeiranteProdutos() {
       return;
     }
     
+    if (!feiraId) {
+      toast.error("Erro: Feira não identificada");
+      return;
+    }
+
     addToCart({
       id: produto.id,
       nome: produto.nome,
@@ -121,7 +125,8 @@ export default function FeiranteProdutos() {
       unidade: produto.unidade,
       quantidade: quantity,
       feiranteId: feirante.id,
-      feiranteNome: feirante.nome_estande || 'Feirante'
+      feiraId: feiraId,
+      feiranteNome: feirante.nome_estande || feirante.nomeEstande || 'Feirante'
     });
     
     toast.success(`${produto.nome} adicionado ao carrinho!`);
@@ -132,7 +137,6 @@ export default function FeiranteProdutos() {
   if (isLoadingFeirante) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -147,7 +151,6 @@ export default function FeiranteProdutos() {
   if (error && !feirante) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
             <p className="text-destructive">{error}</p>
@@ -168,7 +171,6 @@ export default function FeiranteProdutos() {
   if (!feirante) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground mb-4">
@@ -188,8 +190,6 @@ export default function FeiranteProdutos() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <Link to={backUrl}>
           <Button variant="ghost" className="mb-6 gap-2">

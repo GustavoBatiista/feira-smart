@@ -82,7 +82,7 @@ const Register = () => {
       // Aguardar perfil carregar
       setTimeout(() => {
         if (tipo === 'feirante') {
-          navigate('/dashboard');
+          navigate('/feirante/dashboard');
         } else {
           navigate('/feiras');
         }

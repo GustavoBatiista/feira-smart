@@ -11,7 +11,6 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirecionar usuários autenticados assim que o user for carregado
     if (!isLoading && user) {
       if (user.tipo === 'feirante') {
         navigate('/feirante/dashboard');
@@ -21,7 +20,6 @@ const Index = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Não renderizar conteúdo se estiver carregando ou se o usuário estiver autenticado
   if (isLoading || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -58,7 +56,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
       <div className="relative h-screen w-full overflow-hidden">
         <img
           src={heroImage}
@@ -73,8 +70,7 @@ const Index = () => {
                 <h1 className="text-5xl md:text-6xl font-bold">FeiraSmart</h1>
               </div>
               <p className="text-xl md:text-2xl mb-8 leading-relaxed">
-                A forma mais inteligente de conectar consumidores e produtores.
-                Reserve produtos, organize suas compras e apoie as feiras locais.
+                Produtos frescos, comidas típicas, doces, salgados e muito mais, tudo em um só lugar.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
@@ -86,9 +82,8 @@ const Index = () => {
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
                   onClick={() => navigate('/login')}
-                  className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+                  className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-6"
                 >
                   Já tenho conta
                 </Button>
@@ -98,7 +93,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Features Section */}
       <div className="container mx-auto px-4 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">Por que usar o FeiraSmart?</h2>
@@ -122,7 +116,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* CTA Section */}
       <div className="bg-gradient-to-r from-primary to-secondary py-24">
         <div className="container mx-auto px-4 text-center text-white">
           <h2 className="text-4xl font-bold mb-4">Pronto para começar?</h2>

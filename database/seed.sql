@@ -11,17 +11,15 @@
 -- INSERIR FEIRAS
 -- ============================================
 
-INSERT INTO public.feiras (id, nome, localizacao, descricao, data_inicio, data_fim, hora_inicio, hora_fim, status, imagem) VALUES
+INSERT INTO public.feiras (id, nome, localizacao, descricao, dia_da_semana, hora_inicio, hora_fim, imagem) VALUES
   (
     '550e8400-e29b-41d4-a716-446655440001',
     'Feira Orgânica Central',
     'Praça da República, Centro',
     'Feira com produtos orgânicos frescos diretamente dos produtores locais.',
-    CURRENT_DATE,
-    CURRENT_DATE + INTERVAL '1 day',
+    0, -- Domingo
     '06:00:00',
     '14:00:00',
-    'ativa',
     'https://example.com/feira-organica.jpg'
   ),
   (
@@ -29,11 +27,9 @@ INSERT INTO public.feiras (id, nome, localizacao, descricao, data_inicio, data_f
     'Feira do Artesanato',
     'Parque Municipal, Jardins',
     'Artesanato local e produtos alimentícios de qualidade.',
-    CURRENT_DATE + INTERVAL '2 days',
-    CURRENT_DATE + INTERVAL '2 days',
+    3, -- Quarta-feira
     '08:00:00',
     '16:00:00',
-    'agendada',
     'https://example.com/feira-artesanato.jpg'
   )
 ON CONFLICT (id) DO NOTHING;
@@ -112,11 +108,12 @@ ON CONFLICT (id) DO NOTHING;
 -- INSERIR PRODUTOS
 -- ============================================
 
-INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, categoria, imagem, estoque, disponivel) VALUES
+INSERT INTO public.produtos (id, user_id, feirante_id, nome, descricao, preco, unidade, categoria, imagem, estoque, disponivel) VALUES
   -- Produtos do feirante 1 (Hortaliças)
   (
     '950e8400-e29b-41d4-a716-446655440001',
-    '850e8400-e29b-41d4-a716-446655440001',
+    '750e8400-e29b-41d4-a716-446655440003', -- user_id do feirante
+    '850e8400-e29b-41d4-a716-446655440001', -- feirante_id
     'Alface Crespa',
     'Alface crespa orgânica, fresquinha colhida de manhã.',
     3.50,
@@ -128,6 +125,7 @@ INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, c
   ),
   (
     '950e8400-e29b-41d4-a716-446655440002',
+    '750e8400-e29b-41d4-a716-446655440003',
     '850e8400-e29b-41d4-a716-446655440001',
     'Tomate Cereja',
     'Tomate cereja orgânico, doce e saboroso.',
@@ -140,6 +138,7 @@ INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, c
   ),
   (
     '950e8400-e29b-41d4-a716-446655440003',
+    '750e8400-e29b-41d4-a716-446655440003',
     '850e8400-e29b-41d4-a716-446655440001',
     'Cenoura',
     'Cenoura orgânica, rica em betacaroteno.',
@@ -153,7 +152,8 @@ INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, c
   -- Produtos do feirante 2 (Frutas)
   (
     '950e8400-e29b-41d4-a716-446655440004',
-    '850e8400-e29b-41d4-a716-446655440002',
+    '750e8400-e29b-41d4-a716-446655440004', -- user_id do feirante
+    '850e8400-e29b-41d4-a716-446655440002', -- feirante_id
     'Banana Prata',
     'Banana prata madura e doce.',
     5.90,
@@ -165,6 +165,7 @@ INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, c
   ),
   (
     '950e8400-e29b-41d4-a716-446655440005',
+    '750e8400-e29b-41d4-a716-446655440004',
     '850e8400-e29b-41d4-a716-446655440002',
     'Mamão Papaya',
     'Mamão papaya doce e suculento.',
@@ -177,6 +178,7 @@ INSERT INTO public.produtos (id, feirante_id, nome, descricao, preco, unidade, c
   ),
   (
     '950e8400-e29b-41d4-a716-446655440006',
+    '750e8400-e29b-41d4-a716-446655440004',
     '850e8400-e29b-41d4-a716-446655440002',
     'Laranja Lima',
     'Laranja lima suculenta, perfeita para suco.',
@@ -228,32 +230,12 @@ INSERT INTO public.pedido_itens (id, pedido_id, produto_id, nome_produto, quanti
   )
 ON CONFLICT (id) DO NOTHING;
 
--- ============================================
--- CONSULTAS ÚTEIS PARA TESTE
--- ============================================
 
--- Ver todas as feiras ativas
--- SELECT * FROM feiras WHERE status = 'ativa';
 
--- Ver produtos de um feirante
--- SELECT p.* FROM produtos p 
--- JOIN feirantes f ON p.feirante_id = f.id 
--- WHERE f.id = '850e8400-e29b-41d4-a716-446655440001';
 
--- Ver pedidos de um cliente
--- SELECT * FROM pedidos WHERE cliente_id = '750e8400-e29b-41d4-a716-446655440001';
 
--- Ver pedidos com itens
--- SELECT 
---   ped.id,
---   ped.total,
---   ped.status,
---   pi.nome_produto,
---   pi.quantidade,
---   pi.preco
--- FROM pedidos ped
--- JOIN pedido_itens pi ON ped.id = pi.pedido_id
--- WHERE ped.id = 'a50e8400-e29b-41d4-a716-446655440001';
+
+
 
 
 

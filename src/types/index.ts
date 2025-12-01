@@ -13,12 +13,10 @@ export interface Feira {
   nome: string;
   localizacao: string;
   descricao: string;
-  dataInicio: string;
-  dataFim: string;
+  diaDaSemana: number; // 0=domingo, 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado
   horaInicio: string;
   horaFim: string;
   imagem: string;
-  status: 'ativa' | 'encerrada' | 'agendada';
 }
 
 export interface Feirante {
@@ -47,12 +45,13 @@ export interface Produto {
 }
 
 export interface ItemCarrinho {
-  id: number;
+  id: string; // UUID do produto
   nome: string;
   preco: number;
   unidade: string;
   quantidade: number;
-  feiranteId: number;
+  feiranteId: string; // UUID do feirante
+  feiraId: string; // UUID da feira
   feiranteNome: string;
 }
 

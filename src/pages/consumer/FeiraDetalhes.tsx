@@ -5,8 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Clock, Calendar, Store, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { Navbar } from "@/components/layout/Navbar";
 import heroImage from "@/assets/hero-feira.jpg";
+
+const DIAS_DA_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+const getDiaDaSemanaNome = (dia: number): string => {
+  return DIAS_DA_SEMANA[dia] || 'Dia inválido';
+};
 
 interface Feirante {
   id: string;
@@ -57,7 +62,7 @@ export default function FeiraDetalhes() {
       // Buscar feirantes da feira
       const feirantesData = await api.feirantes.list({ feira_id: id });
       
-      if (feirantesData && feirantesData.length > 0) {
+      if (feirantesData && Array.isArray(feirantesData) && feirantesData.length > 0) {
         // Buscar quantidade de produtos para cada feirante
         const feirantesComProdutos = await Promise.all(
           feirantesData.map(async (feirante: any) => {
@@ -68,7 +73,7 @@ export default function FeiraDetalhes() {
               });
               return {
                 ...feirante,
-                produtosCount: produtos?.length || 0,
+                produtosCount: Array.isArray(produtos) ? produtos.length : 0,
               };
             } catch (err) {
               console.error(`Erro ao buscar produtos do feirante ${feirante.id}:`, err);
@@ -86,37 +91,13 @@ export default function FeiraDetalhes() {
       }
     } catch (err: any) {
       console.error('Erro ao buscar feirantes:', err);
-      setError('Erro ao carregar feirantes.');
+      setError(err.message || 'Erro ao carregar feirantes.');
+      setFeirantes([]); // Garantir que a lista seja limpa em caso de erro
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ativa':
-        return 'bg-success text-white';
-      case 'agendada':
-        return 'bg-warning text-white';
-      case 'encerrada':
-        return 'bg-muted text-muted-foreground';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'ativa':
-        return 'Acontecendo agora';
-      case 'agendada':
-        return 'Em breve';
-      case 'encerrada':
-        return 'Encerrada';
-      default:
-        return status;
-    }
-  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -126,15 +107,23 @@ export default function FeiraDetalhes() {
     }
   };
 
-  const formatTime = (timeString: string) => {
+  const formatTime = (timeString: string | null | undefined): string => {
     if (!timeString) return '';
-    return timeString.slice(0, 5); // Formata HH:MM:SS para HH:MM
+    
+    // Se for uma string, formatar o horário
+    if (typeof timeString === 'string') {
+      // Pode vir como "HH:mm:ss" ou "HH:mm" ou apenas "HH:mm:ss.SSS"
+      // Remover milissegundos se existirem e pegar apenas HH:MM
+      const timeOnly = timeString.split('.')[0]; // Remove milissegundos
+      return timeOnly.slice(0, 5); // Pega apenas HH:MM
+    }
+    
+    return '';
   };
 
   if (isLoading && !feira) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -148,7 +137,6 @@ export default function FeiraDetalhes() {
   if (error && !feira) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
             <p className="text-destructive">{error}</p>
@@ -168,7 +156,6 @@ export default function FeiraDetalhes() {
   if (!feira) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12">
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground mb-4">
@@ -183,18 +170,34 @@ export default function FeiraDetalhes() {
     );
   }
 
-  const feiraImage = feira.imagem || heroImage;
+  // Normalizar URL da imagem
+  // Tratar casos onde a imagem pode ser null, undefined, string vazia, ou a string "null"
+  let feiraImage = feira.imagem;
+  
+  // Se for null, undefined, string vazia, ou a string literal "null", usar imagem padrão
+  if (!feiraImage || feiraImage === 'null' || feiraImage === 'undefined' || feiraImage.trim() === '') {
+    feiraImage = heroImage;
+  } else if (feiraImage.startsWith('/uploads')) {
+    // Se a imagem for um caminho relativo (começar com /uploads), converter para URL completa
+    const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+    feiraImage = API_BASE + feiraImage;
+  }
+  // Se já for uma URL completa (http/https), usar diretamente
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
-      {/* Hero Section com Imagem da Feira */}
       <div className="relative h-[400px] w-full overflow-hidden">
         <img
           src={feiraImage}
           alt={feira.nome}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            // Fallback para imagem padrão se a imagem falhar ao carregar
+            if (target.src !== heroImage) {
+              target.src = heroImage;
+            }
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-secondary/80 flex items-center">
           <div className="container mx-auto px-4">
@@ -224,9 +227,6 @@ export default function FeiraDetalhes() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-foreground">{feira.nome}</h2>
-                <Badge className={getStatusColor(feira.status)}>
-                  {getStatusLabel(feira.status)}
-                </Badge>
               </div>
               {feira.descricao && (
                 <p className="text-muted-foreground mb-4">{feira.descricao}</p>
@@ -240,16 +240,22 @@ export default function FeiraDetalhes() {
                 <div className="flex items-center gap-2 text-foreground">
                   <Calendar className="h-4 w-4 text-primary" />
                   <span>
-                    {formatDate(feira.data_inicio)}
-                    {feira.data_fim && feira.data_fim !== feira.data_inicio && (
-                      <> até {formatDate(feira.data_fim)}</>
-                    )}
+                    {getDiaDaSemanaNome(feira.dia_da_semana ?? feira.diaDaSemana ?? 0)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-foreground">
                   <Clock className="h-4 w-4 text-primary" />
                   <span>
-                    {formatTime(feira.hora_inicio)} - {formatTime(feira.hora_fim)}
+                    {(() => {
+                      // Tratar diferentes formatos de nome de campo (snake_case ou camelCase)
+                      const horaInicio = feira.hora_inicio || feira.horaInicio;
+                      const horaFim = feira.hora_fim || feira.horaFim;
+                      
+                      if (horaInicio && horaFim) {
+                        return `${formatTime(horaInicio)} - ${formatTime(horaFim)}`;
+                      }
+                      return 'Horário não disponível';
+                    })()}
                   </span>
                 </div>
               </div>

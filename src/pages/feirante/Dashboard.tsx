@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api-client";
@@ -8,9 +8,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Package, ShoppingCart, TrendingUp, DollarSign, Calendar, MapPin, Store } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, DollarSign, Calendar, MapPin, Store, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Feira } from "@/types";
+
+const DIAS_DA_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+const getDiaDaSemanaNome = (dia: number): string => {
+  return DIAS_DA_SEMANA[dia] || 'Dia inválido';
+};
 
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -19,11 +25,19 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFeira, setSelectedFeira] = useState<Feira | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     nomeEstande: '',
     descricao: '',
     categoria: '',
   });
+  const [stats, setStats] = useState({
+    produtosAtivos: 0,
+    pedidosHoje: 0,
+    faturamentoHoje: 0,
+    crescimento: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   // Proteção de rota: redirecionar se não for feirante
   useEffect(() => {
@@ -39,25 +53,51 @@ export default function Dashboard() {
   useEffect(() => {
     if (user && user.tipo === 'feirante') {
       fetchFeiras();
+      fetchStats();
     }
   }, [user]);
 
+  const fetchStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      const data = await api.feirantes.getDashboardStats();
+      if (data) {
+        setStats({
+          produtosAtivos: data.produtosAtivos || 0,
+          pedidosHoje: data.pedidosHoje || 0,
+          faturamentoHoje: data.faturamentoHoje || 0,
+          crescimento: data.crescimento || 0,
+        });
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar estatísticas:', error);
+      toast({
+        title: "Erro ao carregar estatísticas",
+        description: error.message || "Não foi possível carregar as estatísticas",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
   const fetchFeiras = async () => {
     try {
-      const data = await api.feiras.list('ativa');
+      // Buscar todas as feiras cadastradas
+      const data = await api.feiras.list();
+      
+      console.log('Feiras retornadas da API:', data?.length || 0);
 
       if (data) {
-        setFeiras(data.map(f => ({
+        setFeiras(data.map((f: any) => ({
           id: f.id,
           nome: f.nome,
           localizacao: f.localizacao,
           descricao: f.descricao || '',
-          dataInicio: f.data_inicio,
-          dataFim: f.data_fim,
-          horaInicio: f.hora_inicio,
-          horaFim: f.hora_fim,
+          diaDaSemana: f.dia_da_semana ?? f.diaDaSemana ?? 0,
+          horaInicio: f.hora_inicio || f.horaInicio || '',
+          horaFim: f.hora_fim || f.horaFim || '',
           imagem: f.imagem || '',
-          status: f.status as 'ativa' | 'encerrada' | 'agendada',
         })));
       }
     } catch (error: any) {
@@ -73,7 +113,14 @@ export default function Dashboard() {
   };
 
   const handleCadastro = async () => {
-    if (!user || !selectedFeira) return;
+    if (!user || !selectedFeira) {
+      toast({
+        title: "Erro",
+        description: "Usuário ou feira não encontrados",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!formData.nomeEstande || !formData.categoria) {
       toast({
@@ -84,13 +131,34 @@ export default function Dashboard() {
       return;
     }
 
+    // Verificar se o token está presente
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Sua sessão expirou. Por favor, faça login novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('Iniciando cadastro de feirante:', {
+      user_id: user.id,
+      feira_id: selectedFeira.id,
+      nome_estande: formData.nomeEstande,
+      descricao: formData.descricao,
+      categoria: formData.categoria,
+    });
+
     try {
-      await api.feirantes.create({
+      const data = await api.feirantes.create({
         feira_id: selectedFeira.id,
         nome_estande: formData.nomeEstande,
-        descricao: formData.descricao,
+        descricao: formData.descricao || null,
         categoria: formData.categoria,
       });
+
+      console.log('✅ Cadastro realizado com sucesso:', data);
 
       toast({
         title: "Cadastro realizado!",
@@ -100,46 +168,93 @@ export default function Dashboard() {
       setIsDialogOpen(false);
       setFormData({ nomeEstande: '', descricao: '', categoria: '' });
       setSelectedFeira(null);
+      fetchStats(); // Atualizar estatísticas após cadastro
     } catch (error: any) {
-      console.error('Error registering:', error);
+      console.error('❌ Erro ao cadastrar feirante:', error);
+      console.error('Detalhes do erro:', {
+        message: error.message,
+        status: error.status,
+        stack: error.stack,
+        response: error.response,
+      });
+
+      // Extrair mensagem de erro mais detalhada se disponível
+      let errorMessage = error.message || "Não foi possível realizar o cadastro";
+      
+      // Tentar extrair a mensagem do objeto de erro de diferentes formas
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error.message === 'string' && error.message !== `Erro ${error.status}: Bad Request`) {
+        // Usar a mensagem do erro se não for a genérica
+        errorMessage = error.message;
+      }
+      
+      // Mensagens de erro mais específicas
+      if (errorMessage.includes('já está cadastrado') || errorMessage.includes('já cadastrado')) {
+        errorMessage = "Você já está cadastrado nesta feira";
+      } else if (errorMessage.includes('Feira e nome do estande são obrigatórios')) {
+        errorMessage = "Preencha todos os campos obrigatórios";
+      } else if (errorMessage.includes('Não foi possível conectar à API')) {
+        errorMessage = "Erro de conexão com o servidor. Verifique se a API está funcionando.";
+      } else if (errorMessage.includes('Token') || errorMessage.includes('token') || error.status === 401) {
+        errorMessage = "Sua sessão expirou. Faça login novamente.";
+      } else if (error.status === 403) {
+        errorMessage = "Você não tem permissão para realizar esta ação. Apenas feirantes podem se cadastrar em feiras.";
+      } else if (error.status === 400) {
+        // Se for erro 400 e a mensagem ainda for genérica, tentar mais específica
+        if (errorMessage === `Erro ${error.status}: Bad Request` || !errorMessage || errorMessage === "Não foi possível realizar o cadastro") {
+          errorMessage = error.response?.data?.error || "Dados inválidos. Verifique os campos preenchidos.";
+        }
+      } else if (error.status === 404) {
+        errorMessage = "Feira não encontrada.";
+      } else if (error.status === 500) {
+        errorMessage = "Erro interno do servidor. Tente novamente mais tarde.";
+      }
+      
+      // Se ainda não temos uma mensagem útil, usar uma genérica baseada no status
+      if (!errorMessage || errorMessage === `Erro ${error.status}: Bad Request`) {
+        errorMessage = "Não foi possível realizar o cadastro. Tente novamente.";
+      }
+
       toast({
         title: "Erro no cadastro",
-        description: error.message || "Não foi possível realizar o cadastro",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
-  const stats = [
-    {
-      title: "Produtos Ativos",
-      value: "24",
-      description: "produtos cadastrados",
-      icon: Package,
-      color: "text-primary"
-    },
-    {
-      title: "Pedidos Hoje",
-      value: "12",
-      description: "novos pedidos",
-      icon: ShoppingCart,
-      color: "text-secondary"
-    },
-    {
-      title: "Faturamento",
-      value: "R$ 1.240",
-      description: "hoje",
-      icon: DollarSign,
-      color: "text-accent"
-    },
-    {
-      title: "Crescimento",
-      value: "+18%",
-      description: "vs. semana passada",
-      icon: TrendingUp,
-      color: "text-green-600"
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const formatGrowth = (value: number) => {
+    if (value > 0) {
+      return `+${value.toFixed(1)}%`;
+    } else if (value < 0) {
+      return `${value.toFixed(1)}%`;
     }
-  ];
+    return '0%';
+  };
+
+  // Filtrar feiras por nome ou localização
+  const filteredFeiras = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return feiras;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    return feiras.filter((feira) => {
+      const nomeMatch = feira.nome.toLowerCase().includes(term);
+      const localizacaoMatch = feira.localizacao.toLowerCase().includes(term);
+      return nomeMatch || localizacaoMatch;
+    });
+  }, [feiras, searchTerm]);
 
   // Mostrar loading enquanto autenticação está carregando ou se não for feirante
   if (authLoading) {
@@ -172,17 +287,39 @@ export default function Dashboard() {
         {/* Feiras Disponíveis */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-4">Feiras Disponíveis</h2>
+          
+          {/* Barra de Pesquisa */}
+          {!isLoading && feiras.length > 0 && (
+            <div className="relative max-w-md mb-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome ou localização..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          )}
+
           {isLoading ? (
             <div className="text-center py-8">Carregando feiras...</div>
           ) : feiras.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                Nenhuma feira ativa no momento
+                Nenhuma feira disponível no momento
+              </CardContent>
+            </Card>
+          ) : filteredFeiras.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Nenhuma feira encontrada para "{searchTerm}".
+                <p className="text-sm mt-2">Tente buscar por outro termo.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {feiras.map((feira) => (
+              {filteredFeiras.map((feira) => (
                 <Card key={feira.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -198,7 +335,7 @@ export default function Dashboard() {
                     <div className="flex items-start gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <span className="text-muted-foreground">
-                        {new Date(feira.dataInicio).toLocaleDateString('pt-BR')} - {new Date(feira.dataFim).toLocaleDateString('pt-BR')}
+                        {getDiaDaSemanaNome(feira.diaDaSemana)}
                       </span>
                     </div>
                     {feira.descricao && (
@@ -280,7 +417,11 @@ export default function Dashboard() {
               <Package className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">0</div>
+              {isLoadingStats ? (
+                <div className="text-3xl font-bold text-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-3xl font-bold text-foreground">{stats.produtosAtivos}</div>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 produtos cadastrados
               </p>
@@ -295,7 +436,11 @@ export default function Dashboard() {
               <ShoppingCart className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">0</div>
+              {isLoadingStats ? (
+                <div className="text-3xl font-bold text-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-3xl font-bold text-foreground">{stats.pedidosHoje}</div>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 novos pedidos
               </p>
@@ -310,7 +455,11 @@ export default function Dashboard() {
               <DollarSign className="h-5 w-5 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">R$ 0</div>
+              {isLoadingStats ? (
+                <div className="text-3xl font-bold text-foreground animate-pulse">...</div>
+              ) : (
+                <div className="text-3xl font-bold text-foreground">{formatCurrency(stats.faturamentoHoje)}</div>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 hoje
               </p>
@@ -322,10 +471,16 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Crescimento
               </CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <TrendingUp className={`h-5 w-5 ${stats.crescimento >= 0 ? 'text-green-600' : 'text-red-600'}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">+0%</div>
+              {isLoadingStats ? (
+                <div className="text-3xl font-bold text-foreground animate-pulse">...</div>
+              ) : (
+                <div className={`text-3xl font-bold ${stats.crescimento >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatGrowth(stats.crescimento)}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 vs. semana passada
               </p>

@@ -18,6 +18,11 @@ export const Navbar = () => {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantidade, 0);
 
+  const handleLogout = async () => {
+    // Não limpar o carrinho - manter os itens para o cliente continuar comprando
+    await logout();
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -81,7 +86,7 @@ export const Navbar = () => {
                         <Link to="/pedidos">Meus Pedidos</Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={logout} className="text-destructive">
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       Sair
                     </DropdownMenuItem>
@@ -91,7 +96,7 @@ export const Navbar = () => {
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost">Entrar</Button>
+                  <Button>Entrar</Button>
                 </Link>
                 <Link to="/register">
                   <Button>Cadastrar</Button>

@@ -1,52 +1,134 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Calendar, MapPin, User } from "lucide-react";
+import { Package, Calendar, MapPin, Loader2 } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+
+interface PedidoItem {
+  nome: string;
+  quantidade: number;
+  unidade?: string;
+  preco: number;
+}
+
+interface Pedido {
+  id: string;
+  numero: string;
+  data: string;
+  feira: string;
+  status: 'pendente' | 'confirmado' | 'pronto' | 'entregue' | 'cancelado';
+  total: number;
+  items: PedidoItem[];
+}
 
 export default function Pedidos() {
-  const pedidos = [
-    {
-      id: 1,
-      numero: "1001",
-      data: "2024-01-15",
-      feira: "Feira Orgânica do Parque",
-      status: "pendente" as const,
-      total: 45.50,
-      items: [
-        { nome: "Tomate Orgânico", quantidade: 2, unidade: "kg" },
-        { nome: "Alface Crespa", quantidade: 3, unidade: "unidade" }
-      ]
-    },
-    {
-      id: 2,
-      numero: "1002",
-      data: "2024-01-12",
-      feira: "Feira da Praça",
-      status: "retirado" as const,
-      total: 67.80,
-      items: [
-        { nome: "Cenoura", quantidade: 3, unidade: "kg" },
-        { nome: "Banana Prata", quantidade: 2, unidade: "kg" }
-      ]
-    },
-    {
-      id: 3,
-      numero: "1003",
-      data: "2024-01-10",
-      feira: "Feira Orgânica do Parque",
-      status: "cancelado" as const,
-      total: 32.00,
-      items: [
-        { nome: "Rúcula", quantidade: 4, unidade: "maço" }
-      ]
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Proteção de rota: redirecionar se não for cliente
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        setIsLoading(false);
+        navigate('/login');
+        return;
+      } else if (user.tipo !== 'cliente') {
+        setIsLoading(false);
+        navigate('/feiras');
+        return;
+      }
     }
-  ];
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    // Só buscar pedidos se o usuário estiver autenticado, for cliente e não estiver carregando
+    if (!authLoading && user && user.tipo === 'cliente') {
+      fetchPedidos();
+    } else if (!authLoading && (!user || user.tipo !== 'cliente')) {
+      // Se não for cliente ou não estiver autenticado, não precisa carregar
+      setIsLoading(false);
+    }
+  }, [user, authLoading]);
+
+  const fetchPedidos = async () => {
+    // Verificar novamente antes de fazer a requisição
+    if (!user || user.tipo !== 'cliente') {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await api.pedidos.list();
+
+      if (data && Array.isArray(data)) {
+        const pedidosFormatados: Pedido[] = data.map((p: any, index: number) => {
+          // Gerar número do pedido baseado no ID (pegar últimos 4 caracteres em maiúsculas)
+          const numeroPedido = p.id?.toString().slice(-4).toUpperCase() || String(index + 1).padStart(4, '0');
+          
+          // Mapear itens do banco para o formato esperado
+          const items: PedidoItem[] = (p.itens || []).map((item: any) => ({
+            nome: item.nome_produto || 'Produto',
+            quantidade: parseInt(item.quantidade) || 0,
+            unidade: item.unidade || '',
+            preco: parseFloat(item.preco) || 0,
+          }));
+
+          return {
+            id: p.id,
+            numero: numeroPedido,
+            data: p.created_at || new Date().toISOString(),
+            feira: p.feira_nome || 'Feira',
+            status: p.status || 'pendente',
+            total: parseFloat(p.total) || 0,
+            items: items,
+          };
+        });
+
+        setPedidos(pedidosFormatados);
+      }
+    } catch (err: any) {
+      console.error('Erro ao buscar pedidos:', err);
+      let errorMessage = err.message || "Não foi possível carregar os pedidos";
+      
+      // Melhorar mensagens de erro específicas
+      if (errorMessage.includes('conectar') || errorMessage.includes('fetch') || errorMessage.includes('NetworkError')) {
+        errorMessage = "Erro de conexão com o servidor. Verifique se a API está rodando em http://localhost:3001";
+      } else if (errorMessage.includes('Resposta inválida')) {
+        errorMessage = "Erro de comunicação com o servidor. Verifique se a API está funcionando.";
+      } else if (errorMessage.includes('Token') || (err as any).status === 401) {
+        errorMessage = "Sua sessão expirou. Faça login novamente.";
+      } else if ((err as any).status === 403) {
+        errorMessage = "Você não tem permissão para ver pedidos. Verifique se está logado como cliente.";
+      }
+      
+      setError(errorMessage);
+      toast({
+        title: "Erro ao carregar pedidos",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "pendente":
         return "default";
-      case "retirado":
+      case "confirmado":
+        return "default";
+      case "pronto":
+        return "secondary";
+      case "entregue":
         return "secondary";
       case "cancelado":
         return "destructive";
@@ -58,15 +140,49 @@ export default function Pedidos() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "pendente":
-        return "Aguardando Retirada";
-      case "retirado":
-        return "Retirado";
+        return "Pendente";
+      case "confirmado":
+        return "Confirmado";
+      case "pronto":
+        return "Pronto para Retirada";
+      case "entregue":
+        return "Entregue";
       case "cancelado":
         return "Cancelado";
       default:
         return status;
     }
   };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando pedidos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                Erro ao carregar pedidos
+              </h2>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={fetchPedidos}>Tentar novamente</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,16 +238,26 @@ export default function Pedidos() {
                     </div>
                     
                     <div className="space-y-2">
-                      {pedido.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-foreground">
-                            {item.quantidade}x {item.nome}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {item.quantidade} {item.unidade}
-                          </span>
-                        </div>
-                      ))}
+                      {pedido.items && pedido.items.length > 0 ? (
+                        pedido.items.map((item, idx) => {
+                          const subtotal = item.preco * item.quantidade;
+                          return (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <span className="text-foreground">
+                                {item.quantidade}x {item.nome}
+                              </span>
+                              <span className="font-medium text-primary">
+                                {new Intl.NumberFormat('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                }).format(subtotal)}
+                              </span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nenhum item cadastrado</p>
+                      )}
                     </div>
                   </div>
 
@@ -139,10 +265,12 @@ export default function Pedidos() {
                     <div>
                       <span className="text-sm text-muted-foreground">Total: </span>
                       <span className="text-xl font-bold text-primary">
-                        R$ {pedido.total.toFixed(2)}
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(pedido.total)}
                       </span>
                     </div>
-                    <Button variant="outline">Ver Detalhes</Button>
                   </div>
                 </CardContent>
               </Card>

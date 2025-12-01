@@ -46,29 +46,12 @@ export default function Produtos() {
     try {
       setIsLoading(true);
       
-      // Primeiro, buscar os feirantes do usuário
-      const feirantes = await api.feirantes.list({ user_id: user.id });
+      // Buscar produtos diretamente pelo user_id
+      const produtos = await api.produtos.list({ user_id: user.id });
 
-      if (!feirantes || feirantes.length === 0) {
-        setProdutos([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Buscar produtos de todos os feirantes do usuário
-      const allProdutos: any[] = [];
-      for (const feirante of feirantes) {
-        try {
-          const produtos = await api.produtos.list({ feirante_id: feirante.id });
-          allProdutos.push(...produtos);
-        } catch (error) {
-          console.error(`Erro ao buscar produtos do feirante ${feirante.id}:`, error);
-        }
-      }
-
-      setProdutos(allProdutos.map(p => ({
+      setProdutos(produtos.map(p => ({
         id: p.id,
-        feiranteId: p.feirante_id,
+        feiranteId: p.feirante_id, // Mantido para compatibilidade
         nome: p.nome,
         descricao: p.descricao || '',
         preco: parseFloat(p.preco.toString()),

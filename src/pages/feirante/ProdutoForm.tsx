@@ -19,7 +19,6 @@ export default function ProdutoForm() {
   const isEditing = !!id;
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
-  const [feiranteId, setFeiranteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -32,52 +31,22 @@ export default function ProdutoForm() {
     disponivel: true
   });
 
-  // Buscar feirante_id do usuário
+  // Verificar se o usuário é feirante
   useEffect(() => {
-    if (!authLoading && user && user.tipo === 'feirante') {
-      fetchFeiranteId();
-    } else if (!authLoading && (!user || user.tipo !== 'feirante')) {
-      navigate('/feirante/produtos');
+    if (!authLoading && (!user || user.tipo !== 'feirante')) {
+      navigate('/feiras');
     }
   }, [user, authLoading, navigate]);
 
   // Carregar dados do produto se estiver editando
   useEffect(() => {
-    if (id && feiranteId) {
+    if (id && user) {
       fetchProduto();
     }
-  }, [id, feiranteId]);
-
-  const fetchFeiranteId = async () => {
-    if (!user) return;
-
-    try {
-      const feirantes = await api.feirantes.list({ user_id: user.id });
-
-      if (!feirantes || feirantes.length === 0) {
-        toast({
-          title: "Você precisa se cadastrar em uma feira primeiro",
-          description: "Cadastre-se em uma feira antes de adicionar produtos.",
-          variant: "destructive",
-        });
-        navigate('/feirante/dashboard');
-        return;
-      }
-
-      // Usar o primeiro feirante encontrado
-      setFeiranteId(feirantes[0].id);
-    } catch (error: any) {
-      console.error('Error fetching feirante:', error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: error.message || "Não foi possível carregar seus dados de feirante",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [id, user]);
 
   const fetchProduto = async () => {
-    if (!id || !feiranteId) return;
+    if (!id || !user) return;
 
     try {
       setLoadingData(true);
@@ -111,10 +80,10 @@ export default function ProdutoForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!feiranteId) {
+    if (!user) {
       toast({
         title: "Erro",
-        description: "Não foi possível identificar seu estande. Tente novamente.",
+        description: "Você precisa estar logado para criar produtos.",
         variant: "destructive",
       });
       return;
@@ -130,19 +99,21 @@ export default function ProdutoForm() {
       return;
     }
 
-    if (!formData.preco || parseFloat(formData.preco) <= 0) {
+    const precoNum = parseFloat(formData.preco);
+    if (isNaN(precoNum) || precoNum <= 0) {
       toast({
         title: "Preço inválido",
-        description: "O preço deve ser maior que zero",
+        description: "O preço deve ser um número maior que zero",
         variant: "destructive",
       });
       return;
     }
 
-    if (!formData.estoque || parseInt(formData.estoque) < 0) {
+    const estoqueNum = parseInt(formData.estoque);
+    if (isNaN(estoqueNum) || estoqueNum < 0) {
       toast({
         title: "Estoque inválido",
-        description: "O estoque não pode ser negativo",
+        description: "O estoque deve ser um número maior ou igual a zero",
         variant: "destructive",
       });
       return;
@@ -152,16 +123,18 @@ export default function ProdutoForm() {
 
     try {
       const produtoData = {
-        feirante_id: feiranteId,
         nome: formData.nome.trim(),
         descricao: formData.descricao.trim() || null,
-        preco: parseFloat(formData.preco),
+        preco: precoNum,
         unidade: formData.unidade,
-        estoque: parseInt(formData.estoque),
+        estoque: estoqueNum,
         categoria: formData.categoria || null,
         imagem: formData.imagem.trim() || null,
         disponivel: formData.disponivel,
       };
+
+      console.log('Criando produto com dados:', produtoData);
+      console.log('Usuário:', user);
 
       if (isEditing && id) {
         // Atualizar produto
@@ -184,9 +157,45 @@ export default function ProdutoForm() {
       navigate("/feirante/produtos");
     } catch (error: any) {
       console.error('Error saving produto:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      
+      let errorMessage = error.message || "Não foi possível salvar o produto";
+      
+      // Melhorar mensagens de erro específicas
+      if (errorMessage.includes('conectar') || errorMessage.includes('fetch') || errorMessage.includes('NetworkError')) {
+        errorMessage = "Erro de conexão com o servidor. Verifique se a API está rodando em http://localhost:3001";
+      } else if (errorMessage.includes('Feirante não encontrado') || errorMessage.includes('não pertence ao usuário') || errorMessage.includes('cadastrado em pelo menos uma feira')) {
+        errorMessage = "Você precisa se cadastrar em uma feira primeiro. Vá para o Dashboard e cadastre-se.";
+      } else if (errorMessage.includes('Campos obrigatórios')) {
+        errorMessage = "Preencha todos os campos obrigatórios (nome, preço, unidade)";
+      } else if (errorMessage.includes('Resposta inválida')) {
+        errorMessage = "Erro de comunicação com o servidor. Verifique se a API está funcionando.";
+      } else if (errorMessage.includes('Token') || error.status === 401) {
+        errorMessage = "Sua sessão expirou. Faça login novamente.";
+      } else if (errorMessage.includes('403') || errorMessage.includes('Apenas feirantes') || error.status === 403) {
+        errorMessage = "Você não tem permissão para criar produtos. Verifique se está logado como feirante.";
+      } else if (error.status === 400) {
+        errorMessage = "Dados inválidos. Verifique os campos preenchidos.";
+      }
+      
+      console.error('Detalhes do erro completo:', {
+        message: errorMessage,
+        originalMessage: error.message,
+        status: error.status,
+        userId: user?.id,
+        userTipo: user?.tipo,
+        produtoData: {
+          nome: formData.nome,
+          preco: formData.preco,
+          unidade: formData.unidade,
+          categoria: formData.categoria,
+        }
+      });
+      
       toast({
         title: isEditing ? "Erro ao atualizar produto" : "Erro ao criar produto",
-        description: error.message || "Não foi possível salvar o produto",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -351,7 +360,7 @@ export default function ProdutoForm() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1" disabled={loading || !feiranteId}>
+                <Button type="submit" className="flex-1" disabled={loading || !user}>
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

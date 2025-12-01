@@ -35,15 +35,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              
-              {/* Consumer Routes */}
               <Route path="/feiras" element={<Feiras />} />
               <Route path="/feira/:id/detalhes" element={<FeiraDetalhes />} />
               <Route path="/feirante/:id/produtos" element={<FeiranteProdutos />} />
               <Route path="/carrinho" element={<Carrinho />} />
               <Route path="/pedidos" element={<Pedidos />} />
-              
-              {/* Feirante Routes */}
               <Route path="/feirante/dashboard" element={<Dashboard />} />
               <Route path="/feirante/produtos" element={<Produtos />} />
               <Route path="/feirante/produtos/novo" element={<ProdutoForm />} />
