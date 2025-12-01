@@ -16,3 +16,4 @@ WHERE table_schema = 'public'
   AND table_name = 'produtos'
   AND column_name = 'feirante_id';
 
+

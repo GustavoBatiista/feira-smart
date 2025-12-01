@@ -69,3 +69,4 @@ try {
     Write-Host "`nALTER TABLE public.produtos ALTER COLUMN feirante_id DROP NOT NULL;`n" -ForegroundColor Gray
 }
 
+
