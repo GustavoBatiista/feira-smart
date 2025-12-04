@@ -38,7 +38,7 @@ export default function Carrinho() {
     // Agrupar itens por feirante (assumindo que todos os itens são do mesmo feirante)
     // Se houver itens de feirantes diferentes, criamos um pedido para cada
     const itemsPorFeirante = items.reduce((acc, item) => {
-      const key = `${item.feiranteId}-${item.feiraId || 'sem-feira'}`;
+      const key = `${item.feiranteId}-${item.feiraId}`;
       if (!acc[key]) {
         acc[key] = {
           feiranteId: item.feiranteId,
@@ -48,32 +48,13 @@ export default function Carrinho() {
       }
       acc[key].items.push(item);
       return acc;
-    }, {} as Record<string, { feiranteId: string; feiraId: string | null; items: typeof items }>);
+    }, {} as Record<string, { feiranteId: string; feiraId: string; items: typeof items }>);
 
     setIsFinalizing(true);
 
     try {
-      // Filtrar grupos que têm feira vinculada (por enquanto, o backend exige feira)
-      const gruposComFeira = Object.values(itemsPorFeirante).filter(grupo => grupo.feiraId !== null);
-      const gruposSemFeira = Object.values(itemsPorFeirante).filter(grupo => grupo.feiraId === null);
-
-      // Se houver itens sem feira, mostrar aviso
-      if (gruposSemFeira.length > 0) {
-        toast({
-          title: "Atenção",
-          description: "Alguns produtos não podem ser finalizados porque o feirante não está vinculado a uma feira. Remova esses itens ou aguarde o feirante se vincular a uma feira.",
-          variant: "destructive",
-        });
-        
-        // Se não houver nenhum grupo com feira, não pode finalizar
-        if (gruposComFeira.length === 0) {
-          setIsFinalizing(false);
-          return;
-        }
-      }
-
-      // Criar um pedido para cada feirante que tem feira vinculada
-      const promises = gruposComFeira.map(async (grupo) => {
+      // Criar um pedido para cada feirante
+      const promises = Object.values(itemsPorFeirante).map(async (grupo) => {
         const itensFormatados = grupo.items.map(item => ({
           produto_id: item.id,
           nome_produto: item.nome,
@@ -83,7 +64,7 @@ export default function Carrinho() {
 
         return api.pedidos.create({
           feirante_id: grupo.feiranteId,
-          feira_id: grupo.feiraId!,
+          feira_id: grupo.feiraId,
           itens: itensFormatados,
           observacoes: null
         });
@@ -91,46 +72,18 @@ export default function Carrinho() {
 
       await Promise.all(promises);
 
-      // Remover do carrinho apenas os itens que foram finalizados (que têm feira)
-      const idsFinalizados = new Set(
-        gruposComFeira.flatMap(grupo => grupo.items.map(item => item.id))
-      );
-      
-      // Remover itens finalizados do carrinho
-      idsFinalizados.forEach(id => removeFromCart(id));
-
       toast({
         title: "Reserva finalizada!",
-        description: gruposSemFeira.length > 0 
-          ? `${gruposComFeira.length} pedido(s) finalizado(s) com sucesso. Alguns produtos permanecem no carrinho porque o feirante não está vinculado a uma feira.`
-          : "Seu pedido foi enviado e estará em reserva. Você receberá atualizações em breve.",
+        description: "Seu pedido foi enviado e estará em reserva. Você receberá atualizações em breve.",
       });
 
+      clearCart();
       navigate('/pedidos');
     } catch (error: any) {
       console.error('Erro ao finalizar reserva:', error);
-      
-      // Extrair mensagem de erro mais detalhada
-      let errorMessage = "Não foi possível finalizar a reserva. Tente novamente.";
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      // Verificar se é erro específico de feirante não encontrado
-      if (errorMessage.includes('Feirante não encontrado') || errorMessage.includes('feirante não encontrado')) {
-        errorMessage = "O feirante não foi encontrado. Verifique se o feirante está cadastrado corretamente.";
-      } else if (errorMessage.includes('Feira não encontrada') || errorMessage.includes('feira não encontrada')) {
-        errorMessage = "A feira não foi encontrada. Verifique se a feira está cadastrada corretamente.";
-      }
-      
       toast({
         title: "Erro ao finalizar reserva",
-        description: errorMessage,
+        description: error.message || "Não foi possível finalizar a reserva. Tente novamente.",
         variant: "destructive",
       });
     } finally {

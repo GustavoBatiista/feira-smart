@@ -22,6 +22,12 @@ interface Feirante {
   avaliacao: number;
   num_avaliacoes: number;
   produtosCount?: number;
+  user?: {
+    id: string;
+    nome: string;
+    email?: string;
+  };
+  nome_feirante?: string;
 }
 
 export default function FeiraDetalhes() {
@@ -74,6 +80,7 @@ export default function FeiraDetalhes() {
               return {
                 ...feirante,
                 produtosCount: Array.isArray(produtos) ? produtos.length : 0,
+                nome_feirante: feirante.user?.nome || feirante.nome_feirante,
               };
             } catch (err) {
               console.error(`Erro ao buscar produtos do feirante ${feirante.id}:`, err);
@@ -311,7 +318,11 @@ export default function FeiraDetalhes() {
         {!isLoading && !error && feirantes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {feirantes.map((feirante) => (
-              <Link key={feirante.id} to={`/feirante/${feirante.id}/produtos`}>
+              <Link 
+                key={feirante.id} 
+                to={`/feirante/${feirante.id}/produtos`}
+                state={{ feiraId: id }}
+              >
                 <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
                   <CardContent className="p-6">
                     <div className="flex flex-col items-center text-center">
@@ -337,6 +348,11 @@ export default function FeiraDetalhes() {
                       <h3 className="text-lg font-semibold text-foreground mb-1">
                         {feirante.nome_estande}
                       </h3>
+                      {(feirante.nome_feirante || feirante.user?.nome) && (
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Feirante: <span className="font-medium text-foreground">{feirante.nome_feirante || feirante.user?.nome}</span>
+                        </p>
+                      )}
                       {feirante.categoria && (
                         <p className="text-sm text-muted-foreground mb-1">
                           {feirante.categoria}

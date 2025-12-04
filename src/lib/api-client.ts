@@ -325,6 +325,9 @@ export const api = {
     update: (id: string, data: any) =>
       apiPut<any>(`/feirantes/${id}`, data),
     
+    delete: (id: string) =>
+      apiDelete<any>(`/feirantes/${id}`),
+    
     getDashboardStats: () =>
       apiGet<{
         produtosAtivos: number;
@@ -332,6 +335,25 @@ export const api = {
         faturamentoHoje: number;
         crescimento: number;
       }>('/feirantes/stats/dashboard'),
+    
+    getMinhasFeiras: () =>
+      apiGet<Array<{
+        feiranteId: string;
+        nomeEstande: string;
+        descricao?: string;
+        categoria?: string;
+        avatar?: string;
+        feira: {
+          id: string;
+          nome: string;
+          localizacao: string;
+          descricao?: string;
+          diaDaSemana: number;
+          horaInicio: string;
+          horaFim: string;
+          imagem?: string;
+        };
+      }>>('/feirantes/minhas-feiras'),
   },
 
   pedidos: {

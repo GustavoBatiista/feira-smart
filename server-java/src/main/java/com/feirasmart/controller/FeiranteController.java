@@ -2,6 +2,7 @@ package com.feirasmart.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.feirasmart.config.JwtUserExtractor;
+import com.feirasmart.model.Feira;
 import com.feirasmart.model.Feirante;
 import com.feirasmart.model.User;
 import com.feirasmart.service.DashboardStatsService;
@@ -54,6 +55,46 @@ public class FeiranteController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
             return ResponseEntity.ok(dashboardStatsService.getDashboardStats(user.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @GetMapping("/minhas-feiras")
+    public ResponseEntity<List<Map<String, Object>>> getMinhasFeiras(HttpServletRequest request) {
+        try {
+            User user = jwtUserExtractor.extractUser(request);
+            if (!user.getTipo().name().equals("FEIRANTE")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            List<Feirante> feirantes = feiranteService.findAll(null, user.getId());
+            List<Map<String, Object>> resultado = feirantes.stream().map(feirante -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("feiranteId", feirante.getId());
+                item.put("nomeEstande", feirante.getNomeEstande());
+                item.put("descricao", feirante.getDescricao());
+                item.put("categoria", feirante.getCategoria());
+                item.put("avatar", feirante.getAvatar());
+                
+                Feira feira = feirante.getFeira();
+                if (feira != null) {
+                    Map<String, Object> feiraData = new HashMap<>();
+                    feiraData.put("id", feira.getId());
+                    feiraData.put("nome", feira.getNome());
+                    feiraData.put("localizacao", feira.getLocalizacao());
+                    feiraData.put("descricao", feira.getDescricao());
+                    feiraData.put("diaDaSemana", feira.getDiaDaSemana());
+                    feiraData.put("horaInicio", feira.getHoraInicio());
+                    feiraData.put("horaFim", feira.getHoraFim());
+                    feiraData.put("imagem", feira.getImagem());
+                    item.put("feira", feiraData);
+                }
+                
+                return item;
+            }).toList();
+            
+            return ResponseEntity.ok(resultado);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -121,6 +162,35 @@ public class FeiranteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(
+            @PathVariable UUID id,
+            HttpServletRequest request) {
+        try {
+            User user = jwtUserExtractor.extractUser(request);
+            
+            if (!user.getTipo().name().equals("FEIRANTE")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Apenas feirantes podem remover suas barracas");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            feiranteService.delete(id, user.getId());
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Barraca removida com sucesso");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage() != null ? e.getMessage() : "Barraca não encontrada");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Erro de autenticação ou autorização");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         }
     }
 

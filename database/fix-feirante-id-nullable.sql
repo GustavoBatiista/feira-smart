@@ -17,3 +17,7 @@ WHERE table_schema = 'public'
   AND column_name = 'feirante_id';
 
 
+
+
+
+

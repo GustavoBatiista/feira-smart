@@ -77,7 +77,22 @@ public class FeiranteService {
 
         return feiranteRepository.save(feirante);
     }
+
+    @Transactional
+    public void delete(UUID id, UUID userId) {
+        Feirante feirante = findById(id);
+        
+        if (!feirante.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Feirante não encontrado ou não pertence ao usuário");
+        }
+
+        feiranteRepository.delete(feirante);
+    }
 }
+
+
+
+
 
 
 

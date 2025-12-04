@@ -15,6 +15,16 @@ const getDiaDaSemanaNome = (dia: number): string => {
   return DIAS_DA_SEMANA[dia] || 'Dia inválido';
 };
 
+// Função para obter o dia da semana atual (0=domingo, 1=segunda, ..., 6=sábado)
+const getDiaAtual = (): number => {
+  return new Date().getDay();
+};
+
+// Função para verificar se uma feira está disponível hoje
+const isFeiraDisponivelHoje = (diaDaSemana: number): boolean => {
+  return diaDaSemana === getDiaAtual();
+};
+
 const formatTime = (timeString: string | null | undefined): string => {
   if (!timeString) return '';
   
@@ -190,29 +200,53 @@ const Feiras = () => {
 
         {!isLoading && !error && filteredFeiras.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredFeiras.map((feira) => (
-              <Card key={feira.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative h-48 overflow-hidden bg-muted">
-                  <img
-                    src={feira.imagem || heroImage}
-                    alt={feira.nome}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      // Fallback para imagem padrão se a imagem falhar ao carregar
-                      if (target.src !== heroImage) {
-                        target.src = heroImage;
-                      }
-                    }}
-                  />
-                </div>
-                
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{feira.nome}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {feira.descricao}
-                  </CardDescription>
-                </CardHeader>
+            {filteredFeiras.map((feira) => {
+              const disponivelHoje = isFeiraDisponivelHoje(feira.diaDaSemana);
+              
+              return (
+                <Card 
+                  key={feira.id} 
+                  className={`overflow-hidden hover:shadow-lg transition-shadow ${
+                    disponivelHoje 
+                      ? 'ring-2 ring-primary ring-offset-2 border-primary/50' 
+                      : ''
+                  }`}
+                >
+                  <div className="relative h-48 overflow-hidden bg-muted">
+                    <img
+                      src={feira.imagem || heroImage}
+                      alt={feira.nome}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        // Fallback para imagem padrão se a imagem falhar ao carregar
+                        if (target.src !== heroImage) {
+                          target.src = heroImage;
+                        }
+                      }}
+                    />
+                    {disponivelHoje && (
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg">
+                          Disponível
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="line-clamp-1 flex-1">{feira.nome}</CardTitle>
+                      {disponivelHoje && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 shrink-0">
+                          Hoje
+                        </Badge>
+                      )}
+                    </div>
+                    <CardDescription className="line-clamp-2">
+                      {feira.descricao}
+                    </CardDescription>
+                  </CardHeader>
                 
                 <CardContent className="space-y-3">
                   <div className="flex items-start space-x-2 text-sm">
@@ -244,7 +278,8 @@ const Feiras = () => {
                   </Link>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

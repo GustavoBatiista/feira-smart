@@ -4,11 +4,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Package, ShoppingCart, TrendingUp, DollarSign, Calendar, MapPin, Store, Search } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, DollarSign, Calendar, MapPin, Store, Search, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Feira } from "@/types";
 
@@ -16,6 +27,16 @@ const DIAS_DA_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sex
 
 const getDiaDaSemanaNome = (dia: number): string => {
   return DIAS_DA_SEMANA[dia] || 'Dia inválido';
+};
+
+// Função para obter o dia da semana atual (0=domingo, 1=segunda, ..., 6=sábado)
+const getDiaAtual = (): number => {
+  return new Date().getDay();
+};
+
+// Função para verificar se uma feira está disponível hoje
+const isFeiraDisponivelHoje = (diaDaSemana: number): boolean => {
+  return diaDaSemana === getDiaAtual();
 };
 
 export default function Dashboard() {
@@ -38,6 +59,17 @@ export default function Dashboard() {
     crescimento: 0,
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [minhasFeiras, setMinhasFeiras] = useState<any[]>([]);
+  const [isLoadingMinhasFeiras, setIsLoadingMinhasFeiras] = useState(true);
+  const [selectedBarraca, setSelectedBarraca] = useState<any | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    nomeEstande: '',
+    descricao: '',
+    categoria: '',
+  });
+  const [barracaParaRemover, setBarracaParaRemover] = useState<any | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Proteção de rota: redirecionar se não for feirante
   useEffect(() => {
@@ -54,6 +86,7 @@ export default function Dashboard() {
     if (user && user.tipo === 'feirante') {
       fetchFeiras();
       fetchStats();
+      fetchMinhasFeiras();
     }
   }, [user]);
 
@@ -109,6 +142,121 @@ export default function Dashboard() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMinhasFeiras = async () => {
+    try {
+      setIsLoadingMinhasFeiras(true);
+      const data = await api.feirantes.getMinhasFeiras();
+      if (data) {
+        setMinhasFeiras(data);
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar minhas feiras:', error);
+      toast({
+        title: "Erro ao carregar suas feiras",
+        description: error.message || "Não foi possível carregar as feiras cadastradas",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingMinhasFeiras(false);
+    }
+  };
+
+  const handleEditarBarraca = (barraca: any) => {
+    setSelectedBarraca(barraca);
+    setEditFormData({
+      nomeEstande: barraca.nomeEstande || '',
+      descricao: barraca.descricao || '',
+      categoria: barraca.categoria || '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleAtualizarBarraca = async () => {
+    if (!selectedBarraca) return;
+
+    if (!editFormData.nomeEstande || !editFormData.categoria) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome do estande e a categoria",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const data = await api.feirantes.update(selectedBarraca.feiranteId, {
+        nomeEstande: editFormData.nomeEstande,
+        descricao: editFormData.descricao || null,
+        categoria: editFormData.categoria,
+      });
+
+      toast({
+        title: "Barraca atualizada!",
+        description: `Os dados da sua barraca foram atualizados com sucesso`,
+      });
+
+      setIsEditDialogOpen(false);
+      setEditFormData({ nomeEstande: '', descricao: '', categoria: '' });
+      setSelectedBarraca(null);
+      fetchMinhasFeiras(); // Atualizar lista de feiras cadastradas
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar barraca:', error);
+      
+      let errorMessage = error.message || "Não foi possível atualizar a barraca";
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast({
+        title: "Erro ao atualizar barraca",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoverBarraca = (barraca: any) => {
+    setBarracaParaRemover(barraca);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmarRemocao = async () => {
+    if (!barracaParaRemover) return;
+
+    try {
+      await api.feirantes.delete(barracaParaRemover.feiranteId);
+
+      toast({
+        title: "Barraca removida!",
+        description: `Sua barraca foi removida da feira ${barracaParaRemover.feira?.nome}`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setBarracaParaRemover(null);
+      fetchMinhasFeiras(); // Atualizar lista de feiras cadastradas
+      fetchStats(); // Atualizar estatísticas
+    } catch (error: any) {
+      console.error('❌ Erro ao remover barraca:', error);
+      
+      let errorMessage = error.message || "Não foi possível remover a barraca";
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast({
+        title: "Erro ao remover barraca",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -169,6 +317,7 @@ export default function Dashboard() {
       setFormData({ nomeEstande: '', descricao: '', categoria: '' });
       setSelectedFeira(null);
       fetchStats(); // Atualizar estatísticas após cadastro
+      fetchMinhasFeiras(); // Atualizar lista de feiras cadastradas
     } catch (error: any) {
       console.error('❌ Erro ao cadastrar feirante:', error);
       console.error('Detalhes do erro:', {
@@ -280,8 +429,107 @@ export default function Dashboard() {
             Olá, {user?.nome}! 👋
           </h1>
           <p className="text-muted-foreground mt-2">
-            Cadastre-se nas feiras disponíveis para começar a vender
+            Gerencie suas feiras e cadastre-se em novas
           </p>
+        </div>
+
+        {/* Minhas Feiras Cadastradas */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-foreground mb-4">Minhas Feiras</h2>
+          
+          {isLoadingMinhasFeiras ? (
+            <div className="text-center py-8">Carregando suas feiras...</div>
+          ) : minhasFeiras.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Você ainda não está cadastrado em nenhuma feira.
+                <p className="text-sm mt-2">Cadastre-se em uma feira disponível abaixo para começar a vender.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {minhasFeiras.map((item: any) => {
+                const feira = item.feira;
+                const disponivelHoje = isFeiraDisponivelHoje(feira?.diaDaSemana || 0);
+                
+                return (
+                  <Card 
+                    key={item.feiranteId} 
+                    className={`hover:shadow-lg transition-shadow ${
+                      disponivelHoje 
+                        ? 'ring-2 ring-green-500 ring-offset-2 border-green-500/50' 
+                        : ''
+                    }`}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Store className="h-5 w-5 text-primary" />
+                          <span className="line-clamp-1">{feira?.nome}</span>
+                        </div>
+                        {disponivelHoje && (
+                          <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg shrink-0">
+                            Hoje
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-primary/10 p-3 rounded-lg">
+                        <p className="text-sm font-semibold text-primary">Sua Barraca:</p>
+                        <p className="text-sm font-medium">{item.nomeEstande}</p>
+                        {item.categoria && (
+                          <p className="text-xs text-muted-foreground mt-1">Categoria: {item.categoria}</p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="text-muted-foreground">{feira?.localizacao}</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {getDiaDaSemanaNome(feira?.diaDaSemana || 0)}
+                        </span>
+                      </div>
+                      {feira?.descricao && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {feira.descricao}
+                        </p>
+                      )}
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => handleEditarBarraca(item)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => navigate(`/feirante/produtos?feirante_id=${item.feiranteId}`)}
+                        >
+                          Produtos
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="icon"
+                          onClick={() => handleRemoverBarraca(item)}
+                          className="shrink-0"
+                          title="Remover barraca"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Feiras Disponíveis */}
@@ -319,12 +567,29 @@ export default function Dashboard() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredFeiras.map((feira) => (
-                <Card key={feira.id} className="hover:shadow-lg transition-shadow">
+              {filteredFeiras.map((feira) => {
+                const disponivelHoje = isFeiraDisponivelHoje(feira.diaDaSemana);
+                
+                return (
+                <Card 
+                  key={feira.id} 
+                  className={`hover:shadow-lg transition-shadow ${
+                    disponivelHoje 
+                      ? 'ring-2 ring-primary ring-offset-2 border-primary/50' 
+                      : ''
+                  }`}
+                >
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Store className="h-5 w-5 text-primary" />
-                      {feira.nome}
+                    <CardTitle className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Store className="h-5 w-5 text-primary" />
+                        <span className="line-clamp-1">{feira.nome}</span>
+                      </div>
+                      {disponivelHoje && (
+                        <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-lg shrink-0">
+                          Disponível
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -334,9 +599,16 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-start gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span className="text-muted-foreground">
-                        {getDiaDaSemanaNome(feira.diaDaSemana)}
-                      </span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-muted-foreground">
+                          {getDiaDaSemanaNome(feira.diaDaSemana)}
+                        </span>
+                        {disponivelHoje && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Hoje
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     {feira.descricao && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
@@ -402,7 +674,8 @@ export default function Dashboard() {
                     </Dialog>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -488,6 +761,83 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog de Edição da Barraca */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setSelectedBarraca(null);
+          setEditFormData({ nomeEstande: '', descricao: '', categoria: '' });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Barraca</DialogTitle>
+            <DialogDescription>
+              Atualize os dados da sua barraca na feira {selectedBarraca?.feira?.nome}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editNomeEstande">Nome do Estande *</Label>
+              <Input
+                id="editNomeEstande"
+                placeholder="Ex: Frutas do João"
+                value={editFormData.nomeEstande}
+                onChange={(e) => setEditFormData({ ...editFormData, nomeEstande: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editCategoria">Categoria *</Label>
+              <Input
+                id="editCategoria"
+                placeholder="Ex: Frutas e Verduras"
+                value={editFormData.categoria}
+                onChange={(e) => setEditFormData({ ...editFormData, categoria: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editDescricao">Descrição</Label>
+              <Textarea
+                id="editDescricao"
+                placeholder="Descreva seus produtos..."
+                value={editFormData.descricao}
+                onChange={(e) => setEditFormData({ ...editFormData, descricao: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <Button onClick={handleAtualizarBarraca} className="w-full">
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog de Confirmação de Remoção */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Barraca?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover sua barraca "{barracaParaRemover?.nomeEstande}" da feira "{barracaParaRemover?.feira?.nome}"?
+              <br />
+              <br />
+              <strong>Esta ação não pode ser desfeita.</strong> Todos os produtos e dados relacionados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBarracaParaRemover(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmarRemocao}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
