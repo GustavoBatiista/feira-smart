@@ -1,9 +1,8 @@
 ## 🚀 FeiraSmart – Backend (Java | Spring Boot)
-
-Projeto desenvolvido como Trabalho de Conclusão de Curso da FATEC Ourinhos, com foco no desenvolvimento do **backend da aplicação**.
+Este projeto foi desenvolvido em grupo (3 integrantes) como Trabalho de Conclusão de Curso da FATEC Ourinhos.
 
 ### Meu papel no projeto
-Atuei principalmente no **backend**, sendo responsável por:
+Atuei principalmente no backend, sendo responsável por:
 - Desenvolvimento de APIs REST com Java e Spring Boot
 - Implementação das regras de negócio
 - Integração com banco de dados PostgreSQL via JPA/Hibernate
