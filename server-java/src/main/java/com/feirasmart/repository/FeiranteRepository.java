@@ -33,3 +33,8 @@ public interface FeiranteRepository extends JpaRepository<Feirante, UUID> {
 
 
 
+
+
+
+
+

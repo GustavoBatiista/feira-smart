@@ -35,9 +35,24 @@ export default function Carrinho() {
       return;
     }
 
+    // Validar se todos os itens têm feiraId
+    const itemsSemFeiraId = items.filter(item => !item.feiraId);
+    if (itemsSemFeiraId.length > 0) {
+      toast({
+        title: "Erro ao finalizar reserva",
+        description: "Alguns produtos não têm informação da feira. Por favor, remova os produtos e adicione novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Agrupar itens por feirante (assumindo que todos os itens são do mesmo feirante)
     // Se houver itens de feirantes diferentes, criamos um pedido para cada
     const itemsPorFeirante = items.reduce((acc, item) => {
+      if (!item.feiraId || !item.feiranteId) {
+        return acc; // Pular itens sem feiraId ou feiranteId
+      }
+      
       const key = `${item.feiranteId}-${item.feiraId}`;
       if (!acc[key]) {
         acc[key] = {
@@ -49,6 +64,15 @@ export default function Carrinho() {
       acc[key].items.push(item);
       return acc;
     }, {} as Record<string, { feiranteId: string; feiraId: string; items: typeof items }>);
+
+    if (Object.keys(itemsPorFeirante).length === 0) {
+      toast({
+        title: "Erro ao finalizar reserva",
+        description: "Não foi possível agrupar os produtos. Por favor, verifique os itens do carrinho.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsFinalizing(true);
 
@@ -70,7 +94,9 @@ export default function Carrinho() {
         });
       });
 
-      await Promise.all(promises);
+      const resultados = await Promise.all(promises);
+      
+      console.log('✅ Pedidos criados com sucesso:', resultados);
 
       toast({
         title: "Reserva finalizada!",
@@ -80,10 +106,62 @@ export default function Carrinho() {
       clearCart();
       navigate('/pedidos');
     } catch (error: any) {
-      console.error('Erro ao finalizar reserva:', error);
+      console.error('❌ Erro ao finalizar reserva:', error);
+      console.error('   Tipo do erro:', typeof error);
+      console.error('   Detalhes do erro:', {
+        message: error.message,
+        status: error.status,
+        response: error.response,
+        stack: error.stack
+      });
+      
+      let errorMessage = "Não foi possível finalizar a reserva. Tente novamente.";
+      
+      // Tentar extrair mensagem de erro de diferentes formatos
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Verificar se há dados de resposta do backend
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      // Verificar se é uma resposta HTTP com erro
+      if (error.status) {
+        if (error.status === 401 || error.status === 403) {
+          errorMessage = "Erro de autenticação. Faça login novamente.";
+        } else if (error.status === 400) {
+          // Se já temos uma mensagem específica, manter; senão usar genérica
+          if (!errorMessage || errorMessage.includes('Erro')) {
+            errorMessage = "Dados inválidos. Verifique os produtos no carrinho.";
+          }
+        } else if (error.status === 500) {
+          errorMessage = "Erro no servidor. Tente novamente mais tarde.";
+        }
+      }
+      
+      // Mensagens específicas baseadas no conteúdo
+      const errorLower = errorMessage.toLowerCase();
+      if (errorLower.includes('cliente não encontrado') || errorLower.includes('não encontrado')) {
+        errorMessage = "Erro de autenticação. Faça login novamente.";
+      } else if (errorLower.includes('produto não pertence')) {
+        errorMessage = "Alguns produtos não pertencem ao feirante selecionado.";
+      } else if (errorLower.includes('estoque insuficiente')) {
+        errorMessage = "Alguns produtos não têm estoque suficiente.";
+      } else if (errorLower.includes('obrigatório') || errorLower.includes('obrigatorio')) {
+        errorMessage = "Dados incompletos. Verifique se todos os campos estão preenchidos.";
+      } else if (errorLower.includes('feirante') && errorLower.includes('não encontrado')) {
+        errorMessage = "Feirante não encontrado. Verifique os produtos no carrinho.";
+      } else if (errorLower.includes('feira') && errorLower.includes('não encontrada')) {
+        errorMessage = "Feira não encontrada. Verifique os produtos no carrinho.";
+      }
+      
       toast({
         title: "Erro ao finalizar reserva",
-        description: error.message || "Não foi possível finalizar a reserva. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

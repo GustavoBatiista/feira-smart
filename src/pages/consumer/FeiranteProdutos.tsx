@@ -53,10 +53,19 @@ export default function FeiranteProdutos() {
       setFeirante(data);
       
       // Pegar o ID da feira do feirante
-      if (data?.feira?.id) {
-        setFeiraId(data.feira.id);
-      } else if (data?.feira_id) {
-        setFeiraId(data.feira_id);
+      // Tentar diferentes formatos possíveis da resposta
+      const feiraIdFromData = data?.feira?.id || 
+                              data?.feira_id || 
+                              data?.feiraId ||
+                              (data?.feira && typeof data.feira === 'string' ? data.feira : null);
+      
+      if (feiraIdFromData) {
+        setFeiraId(feiraIdFromData);
+      } else if (location.state?.feiraId) {
+        // Manter o feiraId do state se já existir e não foi encontrado nos dados
+        setFeiraId(location.state.feiraId);
+      } else {
+        console.warn('feiraId não encontrado para o feirante:', id);
       }
     } catch (err: any) {
       console.error('Erro ao buscar feirante:', err);
@@ -140,6 +149,11 @@ export default function FeiranteProdutos() {
       return;
     }
 
+    if (!feiraId) {
+      toast.error('Erro ao adicionar produto: Feira não encontrada. Por favor, tente novamente.');
+      return;
+    }
+
     addToCart({
       id: produto.id,
       nome: produto.nome,
@@ -147,6 +161,7 @@ export default function FeiranteProdutos() {
       unidade: produto.unidade,
       quantidade: quantity,
       feiranteId: id || '',
+      feiraId: feiraId,
       feiranteNome: feirante?.nome_estande || feirante?.nomeEstande || 'Feirante'
     });
     

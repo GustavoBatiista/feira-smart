@@ -1,0 +1,49 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+  api:
+    build: ./server-java
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: feira_smart
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: K9yZP7c7x3Rk8A1TqvH9yQ0zC2eZp6M4X1B8J5wL0A=
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server-java/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: public.ecr.aws/docker/library/postgres:16
+    environment:
+      POSTGRES_DB: feira_smart
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d feira_smart"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:

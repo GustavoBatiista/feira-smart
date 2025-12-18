@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
 
 export default function ProdutoForm() {
   const { id } = useParams();
@@ -26,16 +27,87 @@ export default function ProdutoForm() {
     disponivel: true
   });
 
+  // Carregar dados do produto quando estiver editando
+  useEffect(() => {
+    if (isEditing && id) {
+      const fetchProduto = async () => {
+        try {
+          setLoading(true);
+          const produto = await api.produtos.get(id);
+          setFormData({
+            nome: produto.nome || "",
+            descricao: produto.descricao || "",
+            preco: produto.preco?.toString() || "",
+            unidade: produto.unidade || "kg",
+            estoque: produto.estoque?.toString() || "",
+            categoria: produto.categoria || "",
+            disponivel: produto.disponivel !== undefined ? produto.disponivel : true
+          });
+        } catch (error: any) {
+          console.error('Erro ao carregar produto:', error);
+          toast.error("Erro ao carregar produto para edição");
+          navigate("/feirante/produtos");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProduto();
+    }
+  }, [id, isEditing, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Validar campos obrigatórios
+      if (!formData.nome.trim()) {
+        toast.error("Nome do produto é obrigatório");
+        setLoading(false);
+        return;
+      }
 
-    toast.success(isEditing ? "Produto atualizado!" : "Produto criado!");
-    setLoading(false);
-    navigate("/feirante/produtos");
+      if (!formData.preco || parseFloat(formData.preco) <= 0) {
+        toast.error("Preço deve ser maior que zero");
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.unidade) {
+        toast.error("Unidade é obrigatória");
+        setLoading(false);
+        return;
+      }
+
+      // Preparar dados para envio
+      const produtoData = {
+        nome: formData.nome.trim(),
+        descricao: formData.descricao.trim() || null,
+        preco: parseFloat(formData.preco),
+        unidade: formData.unidade,
+        categoria: formData.categoria || null,
+        estoque: formData.estoque ? parseInt(formData.estoque) : 0,
+        disponivel: formData.disponivel,
+        imagem: null // Pode ser implementado upload de imagem depois
+      };
+
+      if (isEditing && id) {
+        // Atualizar produto existente
+        await api.produtos.update(id, produtoData);
+        toast.success("Produto atualizado com sucesso!");
+      } else {
+        // Criar novo produto
+        await api.produtos.create(produtoData);
+        toast.success("Produto criado com sucesso!");
+      }
+
+      navigate("/feirante/produtos");
+    } catch (error: any) {
+      console.error('Erro ao salvar produto:', error);
+      toast.error(error.message || (isEditing ? "Erro ao atualizar produto" : "Erro ao criar produto"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -129,7 +201,7 @@ export default function ProdutoForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoria">Categoria *</Label>
+                  <Label htmlFor="categoria">Categoria</Label>
                   <Select
                     value={formData.categoria}
                     onValueChange={(value) => setFormData({ ...formData, categoria: value })}

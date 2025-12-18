@@ -74,18 +74,24 @@ export default function Pedidos() {
           const numeroPedido = p.id?.toString().slice(-4).toUpperCase() || String(index + 1).padStart(4, '0');
           
           // Mapear itens do banco para o formato esperado
+          // O backend retorna camelCase (nomeProduto, não nome_produto)
           const items: PedidoItem[] = (p.itens || []).map((item: any) => ({
-            nome: item.nome_produto || 'Produto',
+            nome: item.nomeProduto || item.nome_produto || 'Produto',
             quantidade: parseInt(item.quantidade) || 0,
             unidade: item.unidade || '',
             preco: parseFloat(item.preco) || 0,
           }));
 
+          // O backend retorna camelCase (createdAt, não created_at)
+          // E feira é um objeto, não uma string
+          const feiraNome = p.feira?.nome || p.feiraNome || p.feira_nome || 'Feira';
+          const dataPedido = p.createdAt || p.created_at || new Date().toISOString();
+
           return {
             id: p.id,
             numero: numeroPedido,
-            data: p.created_at || new Date().toISOString(),
-            feira: p.feira_nome || 'Feira',
+            data: dataPedido,
+            feira: feiraNome,
             status: p.status || 'pendente',
             total: parseFloat(p.total) || 0,
             items: items,
