@@ -1,69 +1,100 @@
-# 🚀 FeiraSmart – Backend (Java | Spring Boot)
+🚀 FeiraSmart – Plataforma de Gestão de Feiras
 
-Projeto desenvolvido em grupo (3 integrantes) como **Trabalho de Conclusão de Curso (TCC)** da **FATEC Ourinhos**.
+(Backend Java | Spring Boot + Frontend + PostgreSQL | Docker)
 
-O **FeiraSmart** é uma plataforma que conecta feirantes e consumidores, permitindo a gestão de barracas e produtos, enquanto a criação das feiras é realizada exclusivamente pelos desenvolvedores, garantindo organização e controle do sistema.
+Projeto desenvolvido em grupo (3 integrantes) como Trabalho de Conclusão de Curso (TCC) da FATEC Ourinhos.
 
----
+O FeiraSmart é uma plataforma que conecta feirantes e consumidores, permitindo a gestão de barracas e produtos. A criação das feiras é realizada exclusivamente pelos desenvolvedores, garantindo organização, controle e padronização do sistema.
 
-## 👨‍💻 Meu papel no projeto
+👨‍💻 Meu papel no projeto
 
-Atuei principalmente no*backend, sendo responsável por:
+Atuei principalmente no backend, sendo responsável por:
 
-* Desenvolvimento de APIs REST com Java e Spring Boot
-* Implementação das regras de negócio
-* Integração com banco de dados PostgreSQL utilizando JPA/Hibernate
-* Implementação de autenticação e autorização com Spring Security e JWT
-* Organização da arquitetura em camadas (*Controller, Service, Repository*)
+Desenvolvimento de APIs REST com Java e Spring Boot
 
----
+Implementação das regras de negócio
 
-## ⚙️ Funcionalidades Backend
+Integração com banco de dados PostgreSQL utilizando JPA/Hibernate
 
-* Cadastro e autenticação de usuários
-* Gerenciamento de barracas e produtos por feirantes
-* Controle de acesso baseado em perfil (JWT)
-* Listagem de produtos para visualização do cliente
-* Carrinho e cálculo de pedidos
+Implementação de autenticação e autorização com Spring Security e JWT
 
----
+Organização da arquitetura em camadas (Controller, Service, Repository)
 
-## 🛠️ Stack Backend
+Containerização da aplicação com Docker, facilitando o setup do ambiente em equipe
 
-* **Java 17**
-* **Spring Boot**
-* **Spring Security**
-* **JWT**
-* **JPA / Hibernate**
-* **PostgreSQL**
-* **Maven**
+⚙️ Funcionalidades
 
----
+Cadastro e autenticação de usuários
 
-## ▶️ Como executar o projeto
+Gerenciamento de barracas e produtos por feirantes
 
-1. Clone o repositório:
+Controle de acesso baseado em perfil (JWT)
 
-```bash
+Listagem de produtos para visualização do cliente
+
+Carrinho de compras e cálculo de pedidos
+
+🛠️ Stack Tecnológica
+Backend
+
+Java 17
+
+Spring Boot
+
+Spring Security
+
+JWT
+
+JPA / Hibernate
+
+Maven
+
+Banco de Dados
+
+PostgreSQL
+
+Infraestrutura
+
+Docker
+
+Docker Compose
+
+▶️ Como executar o projeto com Docker (recomendado)
+Pré-requisitos
+
+Docker
+
+Docker Compose
+
+Passos
+
+Clone o repositório:
+
 git clone git@github.com:GustavoBatiista/feira-smart.git
-```
 
-2. Configure o banco de dados PostgreSQL e ajuste o `application.properties`
 
-3. Execute o projeto:
+Acesse a pasta do projeto:
 
-```bash
-mvn spring-boot:run
-```
+cd feira-smart
 
----
 
-## 📌 Observações
+Suba os containers (frontend, backend e banco):
 
-Projeto com fins acadêmicos, desenvolvido para aplicação prática dos conceitos de backend com Java e Spring Boot, autenticação, persistência de dados e regras de negócio.
+docker-compose up -d
 
----
 
-📫 **Contato**
+Após isso:
 
-* LinkedIn: [https://www.linkedin.com/in/gustavo-batista-11a570291](https://www.linkedin.com/in/gustavo-batista-11a570291)
+Backend estará disponível na porta configurada no container
+
+Banco de dados PostgreSQL sobe automaticamente
+
+Não é necessário instalar Java ou PostgreSQL localmente
+
+📌 Observações
+
+Projeto com fins acadêmicos, desenvolvido para aplicação prática de conceitos de backend com Java e Spring Boot, autenticação, persistência de dados, regras de negócio e containerização com Docker para padronização do ambiente de desenvolvimento em equipe.
+
+📫 Contato
+
+LinkedIn: https://www.linkedin.com/in/gustavo-batista-11a570291
